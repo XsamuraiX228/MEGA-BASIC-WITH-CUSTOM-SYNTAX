@@ -303,11 +303,9 @@ fn main() {
 
     let config = SyntaxDict::emoji_style();
     
-    // Лексер
     let mut lexer = Lexer::new(emoji_code, config);
     let tokens = lexer.tokenisize();
     
-    // Парсер
     let mut parser = Parser::new(tokens);
     let ast_emoji = parser.parse();
 
@@ -315,8 +313,6 @@ fn main() {
     println!("{}", emoji_code);
     println!("AST из эмодзи кода: {:?}", ast_emoji);
 
-    
-    // Интерпретатор
     println!("--- Выполнение программы ---");
     interprenter.execute(ast_emoji);
 }
