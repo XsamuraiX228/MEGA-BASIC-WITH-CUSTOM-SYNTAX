@@ -25,9 +25,11 @@ fn main() {
 
     // 3. Читаем весь файл в одну строку
     let program = match fs::read_to_string(file_path) {
-        Ok(content) => content.replace("\r", ""),
+        Ok(content) => content
+            .replace("\r", "")
+            .replace("\u{fe0f}", ""),
         Err(err) => {
-            println!("Не удалось прочитать файл '{}': {}", file_path, err);
+            println!("Ошибка чтения: {}", err);
             process::exit(1);
         }
     };
@@ -35,5 +37,5 @@ fn main() {
     println!("Запуск программы {}...", file_path);
     println!("--------------------------------");
 
-    run(&program, Dictionaries::English);
+    run(&program, Dictionaries::Crab);
 }

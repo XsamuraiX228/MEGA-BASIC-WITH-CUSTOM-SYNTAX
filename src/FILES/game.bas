@@ -1,79 +1,61 @@
-LET PLAYER_SCORE = 0
-LET COMP_SCORE = 0
+🦀 PLAYER_SCORE = 0
+🦀 COMP_SCORE = 0
 
-PRINT "=== WELCOME TO THE DICE TAVERN ==="
-PRINT "First to 3 points wins!"
-PRINT ""
+📢 "=== WELCOME TO THE CRAB TAVERN ==="
+📢 "First to 3 points wins! 🦀"
 
 :round_start
-PRINT "--- NEW ROUND ---"
-PRINT "Press ENTER to roll your dice..."
+📢 "--- NEW ROUND ---"
+📢 "Press ENTER to roll your dice..."
+⚓ DUMMY  
 
-INPUT DUMMY  
+🎲 P_DICE1 1 6
+🎲 P_DICE2 1 6
+🦀 P_TOTAL = P_DICE1 + P_DICE2
 
+📢 "Your total:"
+📢 P_TOTAL
 
-RANDOM P_DICE1 1 6
-RANDOM P_DICE2 1 6
-LET P_TOTAL = P_DICE1 + P_DICE2
+🎲 C_DICE1 1 6
+🎲 C_DICE2 1 6
+🦀 C_TOTAL = C_DICE1 + C_DICE2
 
-PRINT "You rolled:"
-PRINT P_DICE1
-PRINT P_DICE2
-PRINT "Your total:"
-PRINT P_TOTAL
-PRINT ""
+📢 "Computer total:"
+📢 C_TOTAL
 
-
-RANDOM C_DICE1 1 6
-RANDOM C_DICE2 1 6
-LET C_TOTAL = C_DICE1 + C_DICE2
-
-PRINT "Computer rolled:"
-PRINT C_DICE1
-PRINT C_DICE2
-PRINT "Computer total:"
-PRINT C_TOTAL
-PRINT ""
-
-
-IF P_TOTAL == C_TOTAL THEN GOTO draw
-IF P_TOTAL > C_TOTAL THEN GOTO player_wins_round
-IF P_TOTAL < C_TOTAL THEN GOTO comp_wins_round
+🌊 P_TOTAL == C_TOTAL 🚢 🚀 draw
+🌊 P_TOTAL > C_TOTAL 🚢 🚀 player_wins_round
+🌊 P_TOTAL < C_TOTAL 🚢 🚀 comp_wins_round
 
 :draw
-PRINT "It's a draw this round!"
-GOTO show_score
+📢 "It's a draw this round!"
+🚀 show_score
 
 :player_wins_round
-PRINT "You win this round! +1 point"
-LET PLAYER_SCORE = PLAYER_SCORE + 1
-GOTO show_score
+📢 "You win this round! +1 point"
+🦀 PLAYER_SCORE = PLAYER_SCORE + 1
+🚀 show_score
 
 :comp_wins_round
-PRINT "Computer wins this round! +1 point"
-LET COMP_SCORE = COMP_SCORE + 1
-GOTO show_score
+📢 "Computer wins this round! +1 point"
+🦀 COMP_SCORE = COMP_SCORE + 1
+🚀 show_score
 
 :show_score
-PRINT "CURRENT SCORE:"
-PRINT "You:"
-PRINT PLAYER_SCORE
-PRINT "Computer:"
-PRINT COMP_SCORE
-PRINT "--------------------"
-PRINT ""
+📢 "You:"
+📢 PLAYER_SCORE
+📢 "Computer:"
+📢 COMP_SCORE
+📢 "--------------------"
 
-
-IF PLAYER_SCORE == 3 THEN GOTO player_victory
-IF COMP_SCORE == 3 THEN GOTO comp_victory
-
-
-GOTO round_start
+🌊 PLAYER_SCORE == 3 🚢 🚀 player_victory
+🌊 COMP_SCORE == 3 🚢 🚀 comp_victory
+🚀 round_start
 
 :player_victory
-PRINT "CONGRATULATIONS!!! YOU WON THE GAME!"
-END
+📢 "CONGRATULATIONS!!! YOU WON THE GAME! 🦀👑"
+⛔
 
 :comp_victory
-PRINT "GAME OVER. The computer beat you. Try again!"
-END
+📢 "GAME OVER. The computer wins! 🤖"
+⛔

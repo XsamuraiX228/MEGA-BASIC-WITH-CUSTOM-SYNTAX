@@ -168,7 +168,7 @@ impl<'a> Parser<'a> {
                 let left_value = self.expr_bp(0)?;
                 let op_token = self.next();
                 let right_value = self.expr_bp(0)?;
-
+                // println!("{:?}", self.next());
                 if self.next() != Some(Tokens::KeyWord(KeyWordType::Then)) {
                     return Err(format!("Expected block THEN"));
                 }

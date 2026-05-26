@@ -4,6 +4,7 @@ pub enum Dictionaries {
     Russian,
     English,
     Emoji,
+    Crab,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,18 +48,32 @@ impl SyntaxDict {
         keywords.insert("ТО".to_string(), KeyWordType::Then);
         keywords.insert("ИДИ".to_string(), KeyWordType::Goto);
         keywords.insert("РАНДОМ".to_string(), KeyWordType::Random);
+        keywords.insert("СТОП".to_string(), KeyWordType::End);
         Self { keywords }
     }
 
     fn emoji_style() -> Self {
-        let mut keywords = HashMap::new();
-        keywords.insert("✍️".to_string(), KeyWordType::Let);
+    let mut keywords = HashMap::new();
+        keywords.insert("✍".to_string(), KeyWordType::Let);
         keywords.insert("🖨".to_string(), KeyWordType::Print);
-        keywords.insert("⌨️".to_string(), KeyWordType::Input);
+        keywords.insert("⌨".to_string(), KeyWordType::Input);
         keywords.insert("❓".to_string(), KeyWordType::If);
-        keywords.insert("➡️".to_string(), KeyWordType::Then);
+        keywords.insert("➡".to_string(), KeyWordType::Then);
         keywords.insert("🚀".to_string(), KeyWordType::Goto);
         keywords.insert("🎲".to_string(), KeyWordType::Random);
+        keywords.insert("⛔".to_string(), KeyWordType::End);
+        Self { keywords }
+    }
+    fn crab_style() -> Self {
+    let mut keywords = HashMap::new();
+        keywords.insert("🦀".to_string(), KeyWordType::Let);
+        keywords.insert("📢".to_string(), KeyWordType::Print);
+        keywords.insert("⚓".to_string(), KeyWordType::Input);
+        keywords.insert("🌊".to_string(), KeyWordType::If);
+        keywords.insert("🚢".to_string(), KeyWordType::Then);
+        keywords.insert("🚀".to_string(), KeyWordType::Goto);
+        keywords.insert("🎲".to_string(), KeyWordType::Random);
+        keywords.insert("⛔".to_string(), KeyWordType::End);
         Self { keywords }
     }
 
@@ -68,6 +83,7 @@ impl SyntaxDict {
             Russian => Self::russian_style(),
             English => Self::default_basic(),
             Emoji => Self::emoji_style(),
+            Crab => Self::crab_style(),
         }
     }
 }

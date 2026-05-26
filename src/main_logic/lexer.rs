@@ -92,15 +92,16 @@ impl<'a> Lexer<'a> {
                 self.pos += 1;
                 let start = self.pos;
                 while self.pos < bytes.len() {
-                    let current_char = bytes[self.pos] as char;
-                    if current_char.is_whitespace() 
-                        || current_char == '='
-                        || current_char == '!'
-                        || VALID_OPERATORS.contains(&current_char) 
-                    {
-                        break;
+                    if let Some(current_char) = self.input[self.pos..].chars().next() {
+                        if current_char.is_whitespace() 
+                            || current_char == '='
+                            || current_char == '!'
+                            || VALID_OPERATORS.contains(&current_char) 
+                        {
+                            break;
+                        }
+                        self.pos += current_char.len_utf8();
                     }
-                    self.pos += 1;
                 }
                 Some(Tokens::Mark(&self.input[start..self.pos]))
             }
@@ -116,15 +117,16 @@ impl<'a> Lexer<'a> {
             _ => {
                 let start = self.pos;
                 while self.pos < bytes.len() {
-                    let current_char = bytes[self.pos] as char;
-                    if current_char.is_whitespace() 
-                        || current_char == '=' 
-                        || current_char == '!'
-                        || VALID_OPERATORS.contains(&current_char) 
-                    {
-                        break;
+                    if let Some(current_char) = self.input[self.pos..].chars().next() {
+                        if current_char.is_whitespace() 
+                            || current_char == '='
+                            || current_char == '!'
+                            || VALID_OPERATORS.contains(&current_char) 
+                        {
+                            break;
+                        }
+                        self.pos += current_char.len_utf8();
                     }
-                    self.pos += 1;
                 }
                 let word_str = &self.input[start..self.pos];
                 if let Some(kw_type) = self.config.keywords.get(word_str) {

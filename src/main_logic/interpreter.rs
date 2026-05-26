@@ -93,7 +93,7 @@ impl<'a> Interpreter<'a> {
                 if condition {
                     // If condition is true, we start cycle and execute programs one by one
                     for inner_cmd in body {
-                        // If any functions, (e.g GOTO) return new index, we immeadiatly jump to eat and break main loop
+                        // If any functions, (e.g GOTO) return new index, we immeadiatly jump to it and break for loop
                         if let Some(jump_idx) = self.execute_single(inner_cmd, labels) {
                             return Some(jump_idx);
                         }
