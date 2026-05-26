@@ -11,6 +11,9 @@ pub enum KeyWordType {
     Let,
     Print,
     Input,
+    If,
+    Then,
+    Goto,
 }
 
 pub struct SyntaxDict {
@@ -24,6 +27,9 @@ impl SyntaxDict {
         keywords.insert("LET".to_string(), KeyWordType::Let);
         keywords.insert("PRINT".to_string(), KeyWordType::Print);
         keywords.insert("INPUT".to_string(), KeyWordType::Input);
+        keywords.insert("IF".to_string(), KeyWordType::If);
+        keywords.insert("THEN".to_string(), KeyWordType::Then);
+        keywords.insert("GOTO".to_string(), KeyWordType::Goto);
         Self { keywords }
     }
 
@@ -33,6 +39,9 @@ impl SyntaxDict {
         keywords.insert("ПУСТЬ".to_string(), KeyWordType::Let);
         keywords.insert("ПЕЧАТЬ".to_string(), KeyWordType::Print);
         keywords.insert("ВВОД".to_string(), KeyWordType::Input);
+        keywords.insert("ЕСЛИ".to_string(), KeyWordType::If);
+        keywords.insert("ТО".to_string(), KeyWordType::Then);
+        keywords.insert("ИДИ".to_string(), KeyWordType::Goto);
         Self { keywords }
     }
 
@@ -41,6 +50,9 @@ impl SyntaxDict {
         keywords.insert("✍️".to_string(), KeyWordType::Let);
         keywords.insert("🖨".to_string(), KeyWordType::Print);
         keywords.insert("⌨️".to_string(), KeyWordType::Input);
+        keywords.insert("❓".to_string(), KeyWordType::If);
+        keywords.insert("➡️".to_string(), KeyWordType::Then);
+        keywords.insert("🚀".to_string(), KeyWordType::Goto);
         Self { keywords }
     }
 

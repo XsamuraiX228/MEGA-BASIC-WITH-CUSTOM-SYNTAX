@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use super::lexer::Tokens;
 use super::syntaxd::KeyWordType;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum OperationTree<'a> {
     Atom(i64),
     Variable(&'a str),
@@ -58,10 +58,15 @@ impl<'a> OperationTree<'a> {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum Command<'a> {
     Assign { name: &'a str, value: OperationTree<'a> },
     Input {name: &'a str},
-    Print {name: &'a str},
+    PrintStr(&'a str), // PRINT "HELLO"
+    PrintVar(&'a str), // PRINT 10
+    IF {left_value: OperationTree<'a>, cmp: char, right_value: OperationTree<'a>, body: Vec<Command<'a>>},
+    Label {name: &'a str},
+    GOTO {label: &'a str},
 } 
 
 pub struct Parser<'a> {
@@ -134,9 +139,34 @@ impl<'a> Parser<'a> {
                 Ok(Command::Input { name })
             }
 
-            Tokens::KeyWord(KeyWordType::Print) => {
-                let name = self.get_name()?;
-                Ok(Command::Print { name })
+            Tokens::KeyWord(KeyWordType::If) => {
+                let left_value = self.expr_bp(0)?;
+                let op_token = self.next();
+                let right_value = self.expr_bp(0)?;
+
+                if self.next() != Some(Tokens::KeyWord(KeyWordType::Then)) {
+                    return Err(format!("Expected block THEN"));
+                }
+
+                let body = self.parse_command()?;
+
+                let cmp = match op_token {
+                    Some(Tokens::DoubleEqual) => '=',
+                    Some(Tokens::NonEqual) => '!',
+                    Some(Tokens::Less) => '<',
+                    Some(Tokens::Greater) => '>',
+                    other => return Err(format!("Expected == or !=, got {:?}", other)),
+                };
+                Ok(Command::IF { left_value, cmp, right_value, body: vec![body] })
+            }
+
+            Tokens::Mark(name) => {
+                Ok(Command::Label { name })
+            }
+
+            Tokens::KeyWord(KeyWordType::Goto) => {
+                let label = self.get_name()?;
+                Ok(Command::GOTO { label })
             }
 
             other => Err(format!("Unexpected command token {:?}", other))

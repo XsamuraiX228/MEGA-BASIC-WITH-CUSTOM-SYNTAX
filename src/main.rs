@@ -6,9 +6,34 @@ use basic_lexer::main_logic::syntaxd::Dictionaries;
 
 fn main() {
     let program = "
-        LET result = (5 + 4 + 4!)^2 * 89
-        PRINT result
-    "; // 417210394672
+        LET SECRET = 42
+        LET TRIES = 0
+
+        PRINT \"--- GUESS THE NUMBER GAME ---\"
+
+        :game_loop
+        PRINT \"Enter your guess:\"
+        INPUT GUESS
+
+        LET TRIES = TRIES + 1
+
+        IF GUESS == SECRET THEN GOTO win
+        IF GUESS < SECRET THEN GOTO too_low
+        IF GUESS > SECRET THEN GOTO too_high
+
+        :too_low
+        PRINT \"Too low! Try again.\"
+        GOTO game_loop
+
+        :too_high
+        PRINT \"Too high! Try again.\"
+        GOTO game_loop
+
+        :win
+        PRINT \"YOU WIN!!!\"
+        PRINT \"Total tries:\"
+        PRINT TRIES
+    ";
 
     run(program, Dictionaries::English);
 }

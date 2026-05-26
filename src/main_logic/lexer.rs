@@ -1,15 +1,21 @@
 use super::syntaxd::{SyntaxDict, KeyWordType};
 
-const VALID_OPERATORS: [char; 8] = ['+', '-', '*', '/', '^', '!', '(', ')'];
+const VALID_OPERATORS: [char; 7] = ['+', '-', '*', '/', '^', '(', ')'];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Tokens<'a> {   
-    KeyWord(KeyWordType),        
-    Ident(&'a str),
-    Number(i64),  
-    Equal,        
-    Op(char),
-    Newline,      
+    KeyWord(KeyWordType), // Let, Input, Print, If, Then     
+    Ident(&'a str), // simple string
+    Text(&'a str),
+    Number(i64),  // i64 number
+    Equal, // =
+    DoubleEqual, // ==
+    NonEqual, // !=
+    Op(char), // ['+', '-', '*', '/', '^', '(', ')']
+    Newline, // \n
+    Mark(&'a str), // e.g :loop 
+    Less,
+    Greater,
 }
 
 pub struct Lexer<'a> {
@@ -39,8 +45,28 @@ impl<'a> Lexer<'a> {
 
         match ch {
             '=' => {
+                if self.pos + 1 < bytes.len() && bytes[self.pos + 1] == b'=' {
+                    self.pos += 2;
+                    return Some(Tokens::DoubleEqual)
+                }
                 self.pos += 1;
                 return Some(Tokens::Equal);
+            }
+            '!' => {
+                if self.pos + 1 < bytes.len() && bytes[self.pos + 1] == b'=' {
+                    self.pos += 2;
+                    return Some(Tokens::NonEqual)
+                }
+                self.pos += 1;
+                return Some(Tokens::Op('!'));
+            }
+            '<' => {
+                self.pos += 1;
+                return Some(Tokens::Less);
+            }
+            '>' => {
+                self.pos += 1;
+                return Some(Tokens::Greater); 
             }
             '\n' => {
                 self.pos += 1;
@@ -50,7 +76,35 @@ impl<'a> Lexer<'a> {
                 self.pos += 1;
                 return Some(Tokens::Op(ch));
             }
-            '0'..'9' => {
+            '"' => {
+                self.pos += 1; 
+                let start = self.pos;
+                
+                while self.pos < bytes.len() && bytes[self.pos] != b'"' {
+                    self.pos += 1;
+                }
+                
+                let text_str = &self.input[start..self.pos];
+                self.pos += 1; 
+                Some(Tokens::Text(text_str))
+            }
+            ':' => {
+                self.pos += 1;
+                let start = self.pos;
+                while self.pos < bytes.len() {
+                    let current_char = bytes[self.pos] as char;
+                    if current_char.is_whitespace() 
+                        || current_char == '='
+                        || current_char == '!'
+                        || VALID_OPERATORS.contains(&current_char) 
+                    {
+                        break;
+                    }
+                    self.pos += 1;
+                }
+                Some(Tokens::Mark(&self.input[start..self.pos]))
+            }
+            '0'..='9' => {
                 let start = self.pos;
                 while self.pos < bytes.len() && (bytes[self.pos] as char).is_ascii_digit() {
                     self.pos += 1
@@ -65,6 +119,7 @@ impl<'a> Lexer<'a> {
                     let current_char = bytes[self.pos] as char;
                     if current_char.is_whitespace() 
                         || current_char == '=' 
+                        || current_char == '!'
                         || VALID_OPERATORS.contains(&current_char) 
                     {
                         break;
