@@ -35,7 +35,7 @@ impl<'a> Lexer<'a> {
 
     fn next_token(&mut self) -> Option<Tokens<'a>> {
         let bytes = self.input.as_bytes();
-        while self.pos < self.input.len() && bytes[self.pos] == b' ' {
+        while self.pos < self.input.len() && bytes[self.pos] == b' '  {
             self.pos += 1
         }
         if self.pos > self.input.len() - 1 {

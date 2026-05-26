@@ -4,36 +4,36 @@ use basic_lexer::settings::{
 
 use basic_lexer::main_logic::syntaxd::Dictionaries;
 
+use std::env;
+use std::fs;
+use std::process;
+
 fn main() {
-    let program = "
-        RANDOM SECRET 1 100
-        LET TRIES = 0
+    // 1. Собираем аргументы, которые передали в терминале
+    let args: Vec<String> = env::args().collect();
 
-        PRINT \"--- GUESS THE NUMBER GAME ---\"
+    // 2. Проверяем, передал ли пользователь имя файла
+    if args.len() < 2 {
+        println!("Ошибка: Вы не указали файл с программой!");
+        println!("Использование: cargo run -- <имя_файла>");
+        process::exit(1);
+    }
+    
+    // Имя файла — это первый аргумент после `cargo run --`
+    // Например: cargo run -- C:\Folder\Folder\Folder\src\FILES\game.bas
+    let file_path = &args[1];
 
-        :game_loop
-        PRINT \"Enter your guess:\"
-        INPUT GUESS
+    // 3. Читаем весь файл в одну строку
+    let program = match fs::read_to_string(file_path) {
+        Ok(content) => content.replace("\r", ""),
+        Err(err) => {
+            println!("Не удалось прочитать файл '{}': {}", file_path, err);
+            process::exit(1);
+        }
+    };
 
-        LET TRIES = TRIES + 1
+    println!("Запуск программы {}...", file_path);
+    println!("--------------------------------");
 
-        IF GUESS == SECRET THEN GOTO win
-        IF GUESS < SECRET THEN GOTO too_low
-        IF GUESS > SECRET THEN GOTO too_high
-
-        :too_low
-        PRINT \"Too low! Try again.\"
-        GOTO game_loop
-
-        :too_high
-        PRINT \"Too high! Try again.\"
-        GOTO game_loop
-
-        :win
-        PRINT \"YOU WIN!!!\"
-        PRINT \"Total tries:\"
-        PRINT TRIES
-    ";
-
-    run(program, Dictionaries::English);
+    run(&program, Dictionaries::English);
 }

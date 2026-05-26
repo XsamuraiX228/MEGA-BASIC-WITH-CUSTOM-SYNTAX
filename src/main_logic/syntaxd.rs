@@ -15,6 +15,7 @@ pub enum KeyWordType {
     Then,
     Goto,
     Random,
+    End,
 }
 
 pub struct SyntaxDict {
@@ -32,6 +33,7 @@ impl SyntaxDict {
         keywords.insert("THEN".to_string(), KeyWordType::Then);
         keywords.insert("GOTO".to_string(), KeyWordType::Goto);
         keywords.insert("RANDOM".to_string(), KeyWordType::Random);
+        keywords.insert("END".to_string(), KeyWordType::End);
         Self { keywords }
     }
 

@@ -108,19 +108,26 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Vec<Command<'a>>, String> {
         let mut commands = Vec::new();
 
-        while self.peek().is_some() {
-            if self.peek() == Some(&Tokens::Newline) {
+        while let Some(token) = self.peek() {
+            // 1. Если встретили токен END — программа успешно распарсена, выходим!
+            if token == &Tokens::KeyWord(KeyWordType::End) {
+                self.next(); // съедаем токен END
+                break;
+            }
+
+            // 2. Игнорируем пустые строки
+            if token == &Tokens::Newline {
                 self.next();
                 continue;
             }
 
+            // 3. Парсим обычную команду
             let cmd = self.parse_command()?;
             commands.push(cmd);
 
+            // 4. Проверяем перенос строки после команды
             if let Some(Tokens::Newline) = self.peek() {
                 self.next();
-            } else if self.peek().is_some() {
-                panic!("Expected next line {:?}", self.peek())
             }
         }
 

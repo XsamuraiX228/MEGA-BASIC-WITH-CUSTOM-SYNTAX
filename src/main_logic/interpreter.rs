@@ -58,7 +58,7 @@ impl<'a> Interpreter<'a> {
             Command::Input { name } => {
                 let mut input = String::new();
                 std::io::stdin().read_line(&mut input).unwrap();
-                let value: i64 = input.trim().parse().expect("Expected number");
+                let value: i64 = input.trim().parse().unwrap_or(0);
                 self.env.insert(name, value);
                 None
             }
