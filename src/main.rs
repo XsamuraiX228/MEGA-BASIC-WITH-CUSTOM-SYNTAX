@@ -41,7 +41,6 @@ fn main() {
     let mut config = Dictionaries::English;
 
     // Check the kind of Dict we need to use
-    // Внутри main.rs, где работает препроцессор:
     if let Some(first_line) = code.lines().next() {
         let trimmed = first_line.trim();
         
@@ -55,7 +54,6 @@ fn main() {
                     }
                 }
             }
-            // Отрезаем директиву подключения из кода
             if let Some(pos) = code.find('\n') {
                 code = code[pos + 1..].to_string();
             }
@@ -63,8 +61,6 @@ fn main() {
     }
     println!("Launching file: {:?}", path);
     println!("-----------------------------------------");
-
-    // 7. Запускаем твой интерпретатор с динамически выбранным синтаксисом!
     if !code.is_empty() {
         run(&code, config);
     }
