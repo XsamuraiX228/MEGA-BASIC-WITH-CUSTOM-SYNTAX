@@ -68,6 +68,7 @@ pub enum Command<'a> {
     Label {name: &'a str},
     GOTO {label: &'a str},
     Random {name:&'a str, min: i64, max: i64},
+    End,
 } 
 
 pub struct Parser<'a> {
@@ -109,12 +110,6 @@ impl<'a> Parser<'a> {
         let mut commands = Vec::new();
 
         while let Some(token) = self.peek() {
-            // 1. Если встретили токен END — программа успешно распарсена, выходим!
-            if token == &Tokens::KeyWord(KeyWordType::End) {
-                self.next(); // съедаем токен END
-                break;
-            }
-
             // 2. Игнорируем пустые строки
             if token == &Tokens::Newline {
                 self.next();
@@ -200,6 +195,10 @@ impl<'a> Parser<'a> {
                 let max = self.get_num()?;
 
                 Ok (Command::Random { name, min, max })
+            }
+
+            Tokens::KeyWord(KeyWordType::End) => {
+                Ok(Command::End)
             }
 
             other => Err(format!("Unexpected command token {:?}", other))

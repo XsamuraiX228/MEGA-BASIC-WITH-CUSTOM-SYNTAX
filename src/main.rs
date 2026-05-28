@@ -6,7 +6,7 @@ use basic_lexer::settings::{
     load_code,
 };
 
-use basic_lexer::main_logic::syntaxd::{Dictionaries, SyntaxDict};
+use basic_lexer::main_logic::syntaxd::{SyntaxDict};
 
 
 fn main() {
@@ -36,9 +36,7 @@ fn main() {
             return; 
         }
     };
-    // Clean code from Windows /r and emoji unicodes
-    code = code.replace("\r", "").replace("\u{fe0f}", "");
-    let mut config = Dictionaries::English;
+    let mut config = SyntaxDict::get_dict("ENGLISH");
 
     // Check the kind of Dict we need to use
     if let Some(first_line) = code.lines().next() {
@@ -48,7 +46,7 @@ fn main() {
             if let Some(start_quote) = trimmed.find('"') {
                 if let Some(end_quote) = trimmed.rfind('"') {
                     if start_quote != end_quote {
-                        let dict_name = &trimmed[start_quote + 1..end_quote];
+                        let dict_name = &trimmed[start_quote + 1..end_quote]; 
                         config = SyntaxDict::get_dict(dict_name); 
                         println!("[Preprocessor]: Dictionary for language successfully connected: {}", dict_name);
                     }

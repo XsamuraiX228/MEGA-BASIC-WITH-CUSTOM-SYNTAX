@@ -1,6 +1,14 @@
 use std::collections::HashMap;
 use super::parser::Command;
 use rand::*;
+
+#[derive(Debug, PartialEq)]
+pub enum Signal<'a> {
+    Continue,
+    Jump {label: &'a str},
+    None,
+}
+
 #[allow(dead_code)]
 pub struct Interpreter<'a> {
     env: HashMap<&'a str, i64>
@@ -24,35 +32,40 @@ impl<'a> Interpreter<'a> {
     pub fn execute(&mut self, commands: &[Command<'a>], labels: &HashMap<&'a str, usize>) {
         let mut command_idx = 0;
         while command_idx < commands.len() {
-            // Check if new index exists to jump
-            if let Some(new_idx) = self.execute_single(&commands[command_idx], labels) {
-                command_idx = new_idx;
-                continue; 
-            }
-            command_idx += 1;
-        }
-    }
-
-    // Function returns Option<usize>. 
-    // If Some(idx) was returned — GOTO worked and we need to jump to next index
-    fn execute_single(&mut self, cmd: &Command<'a>, labels: &HashMap<&'a str, usize>) -> Option<usize> {
-        match cmd {
-            Command::Label { .. } => None,
-            
-            Command::GOTO { label } => {
-                match labels.get(label) {
-                    Some(idx) => Some(*idx), // Return index where to jump
-                    None => {
-                        println!("Runtime Error: label '{}' not found", label);
-                        None
+            match self.execute_single(&commands[command_idx], labels) {
+                Signal::None => {
+                    return;
+                }
+                Signal::Jump { label } => {
+                    if let Some(&new_idx) = labels.get(label) {
+                        command_idx = new_idx;
+                        continue;
                     }
                 }
+                Signal::Continue => {
+                    command_idx += 1
+                }
             }
+        }
+    }
+    // Function returns Option<usize>. 
+    // If Some(idx) was returned — GOTO worked and we need to jump to next index
+    fn execute_single(&mut self, cmd: &Command<'a>, labels: &HashMap<&'a str, usize>) -> Signal<'a> {
+        match cmd {
+            Command::Label { .. } => Signal::Continue,
             
+            Command::GOTO { label } => {
+                if labels.contains_key(label) {
+                    Signal::Jump { label }
+                } else {
+                    println!("Runtime Error: label '{}' not found", label);
+                    Signal::Continue
+                }
+            }
             Command::Assign { name, value } => {
                 let final_value = value.evaluate(&self.env).expect("Execute Error");
                 self.env.insert(name, final_value);
-                None
+                Signal::Continue
             }
             
             Command::Input { name } => {
@@ -60,12 +73,12 @@ impl<'a> Interpreter<'a> {
                 std::io::stdin().read_line(&mut input).unwrap();
                 let value: i64 = input.trim().parse().unwrap_or(0);
                 self.env.insert(name, value);
-                None
+                Signal::Continue
             }
      
             Command::PrintStr(text) => {
                 println!("{}", text);
-                None
+                Signal::Continue
             }
 
             Command::PrintVar(name) => {
@@ -75,7 +88,7 @@ impl<'a> Interpreter<'a> {
                 } else {
                     println!("Runtime Error: variable '{}' is not defined", name)
                 }
-                None
+                Signal::Continue
             }
             
             Command::IF { left_value, cmp, right_value, body } => {
@@ -85,7 +98,7 @@ impl<'a> Interpreter<'a> {
                 let condition = match cmp {
                     '=' => lhs == rhs,
                     '!' => lhs != rhs,
-                    '<' => lhs < rhs, // Добавили!
+                    '<' => lhs < rhs, 
                     '>' => lhs > rhs,
                     _ => unreachable!(),
                 };
@@ -93,13 +106,16 @@ impl<'a> Interpreter<'a> {
                 if condition {
                     // If condition is true, we start cycle and execute programs one by one
                     for inner_cmd in body {
-                        // If any functions, (e.g GOTO) return new index, we immeadiatly jump to it and break for loop
-                        if let Some(jump_idx) = self.execute_single(inner_cmd, labels) {
-                            return Some(jump_idx);
+                        // Checking signal
+                        let signal = self.execute_single(inner_cmd, labels);
+                        // If signal != Continue -> Signal::None or Signal::Jump
+                        if signal != Signal::Continue {
+                            return signal;
                         }
                     }
                 }
-                None
+                // default Signal
+                Signal::Continue
             }
 
             Command::Random { name, min, max } => {
@@ -111,7 +127,11 @@ impl<'a> Interpreter<'a> {
                 
                 // Записываем его в наше окружение, как обычный LET
                 self.env.insert(name, random_value);
-                None // Прыжка нет, возвращаем None
+                Signal::Continue
+            }
+
+            Command::End => {
+                return Signal::None;
             }
         }
     }

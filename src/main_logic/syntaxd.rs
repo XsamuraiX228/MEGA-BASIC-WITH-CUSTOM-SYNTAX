@@ -5,6 +5,7 @@ pub enum Dictionaries {
     English,
     Emoji,
     Crab,
+    Brainrot
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,7 +54,7 @@ impl SyntaxDict {
     }
 
     fn emoji_style() -> Self {
-    let mut keywords = HashMap::new();
+        let mut keywords = HashMap::new();
         keywords.insert("✍".to_string(), KeyWordType::Let);
         keywords.insert("🖨".to_string(), KeyWordType::Print);
         keywords.insert("⌨".to_string(), KeyWordType::Input);
@@ -65,7 +66,7 @@ impl SyntaxDict {
         Self { keywords }
     }
     fn crab_style() -> Self {
-    let mut keywords = HashMap::new();
+        let mut keywords = HashMap::new();
         keywords.insert("🦀".to_string(), KeyWordType::Let);
         keywords.insert("📢".to_string(), KeyWordType::Print);
         keywords.insert("⚓".to_string(), KeyWordType::Input);
@@ -76,23 +77,26 @@ impl SyntaxDict {
         keywords.insert("⛔".to_string(), KeyWordType::End);
         Self { keywords }
     }
-
-    pub fn choose_dict(dicts: Dictionaries) -> SyntaxDict {
-        use Dictionaries::*;
-        match dicts {
-            Russian => Self::russian_style(),
-            English => Self::default_basic(),
-            Emoji => Self::emoji_style(),
-            Crab => Self::crab_style(),
-        }
+    fn brainrot_style() -> Self {
+        let mut keywords = HashMap::new();
+        keywords.insert("КАРЛОООООО".to_string(), KeyWordType::Let);
+        keywords.insert("ПОТХОТСПОТ".to_string(), KeyWordType::Print);
+        keywords.insert("КОКФАНТОЭЛЕФАНТО".to_string(), KeyWordType::Input);
+        keywords.insert("ЧАИМАЭСТРО".to_string(), KeyWordType::If);
+        keywords.insert("ТОНГТОНГТОНГСАХУР".to_string(), KeyWordType::Then);
+        keywords.insert("ТРАЛАЛЭЛОТРАЛАЛА".to_string(), KeyWordType::Goto);
+        keywords.insert("БРРБРРПАТАПИМ".to_string(), KeyWordType::Random);
+        keywords.insert("БОНЕКААМБАЛАБУ".to_string(), KeyWordType::End);
+        Self { keywords }
     }
 
-    pub fn get_dict(name_of_dict: &str) -> Dictionaries {
+    pub fn get_dict(name_of_dict: &str) -> SyntaxDict {
         match name_of_dict {
-            "RUSSIAN" => Dictionaries::Russian,
-            "EMOJI" => Dictionaries::Emoji,
-            "CRAB" => Dictionaries::Crab,
-            _ => Dictionaries::English,
+            "RUSSIAN" => Self::russian_style(),
+            "EMOJI" => Self::emoji_style(),
+            "CRAB" => Self::crab_style(),
+            "BRAINROT" => Self::brainrot_style(),
+            _ => Self::default_basic(),
         }
     }
 }

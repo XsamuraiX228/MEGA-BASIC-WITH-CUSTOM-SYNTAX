@@ -68,6 +68,20 @@ impl<'a> Lexer<'a> {
                 self.pos += 1;
                 return Some(Tokens::Greater); 
             }
+            '\r' => {
+                self.pos += 1;
+                if self.pos < self.input.len() && bytes[self.pos] == b'\n' {
+                    self.pos += 1;
+                }
+                Some(Tokens::Newline)
+            }
+            '\u{fe0f}' => {
+                self.pos += 1;
+                if self.pos < self.input.len() && bytes[self.pos] == b'\n' {
+                    self.pos += 1;
+                }
+                Some(Tokens::Newline)
+            }
             '\n' => {
                 self.pos += 1;
                 return Some(Tokens::Newline);
