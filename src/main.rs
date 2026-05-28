@@ -1,21 +1,14 @@
-use basic_lexer::settings::{
-    run,
-
-    // Functions created by github.com/IsThisALis
-    scan_code,
+use basic_lexer::{io::scanner::{
     load_code,
-};
+    scan_code,
+}, run_pipeline};
 
-use basic_lexer::main_logic::syntaxd::{SyntaxDict};
-
-
-fn main() {
+fn main() -> Result<(), String> {
     // Find files in dir FILES
     let content_to_load = match scan_code("src/FILES") {
         Ok(files) => files,
         Err(e) => {
-            eprintln!("[Scanning error]: {}", e);
-            return;
+            return Err(format!("[Scanning error]: {}", e));
         }
     };
 
@@ -23,43 +16,18 @@ fn main() {
     let path = match content_to_load.first() {
         Some(p) => p,
         None => { 
-            eprintln!("[Error]: No files with extension found in folder 'FILES' .bsa"); 
-            return; 
+            return Err(format!("[Error]: No files with extension found in folder 'FILES' .bsa")); 
         }
     };
 
     // 3. Loading the code from the file
-    let mut code = match load_code(path) {
+    let code = match load_code(path) {
         Ok(text) => text,
         Err(e) => { 
-            eprintln!("[Error reading file {:?}]: {}", path, e); 
-            return; 
+            return Err(format!("[Error reading file {:?}]: {}", path, e)); 
         }
     };
-    let mut config = SyntaxDict::get_dict("ENGLISH");
-
-    // Check the kind of Dict we need to use
-    if let Some(first_line) = code.lines().next() {
-        let trimmed = first_line.trim();
-        
-        if trimmed.starts_with("#mode") {
-            if let Some(start_quote) = trimmed.find('"') {
-                if let Some(end_quote) = trimmed.rfind('"') {
-                    if start_quote != end_quote {
-                        let dict_name = &trimmed[start_quote + 1..end_quote]; 
-                        config = SyntaxDict::get_dict(dict_name); 
-                        println!("[Preprocessor]: Dictionary for language successfully connected: {}", dict_name);
-                    }
-                }
-            }
-            if let Some(pos) = code.find('\n') {
-                code = code[pos + 1..].to_string();
-            }
-        }
-    }
-    println!("Launching file: {:?}", path);
-    println!("-----------------------------------------");
-    if !code.is_empty() {
-        run(&code, config);
-    }
+    
+    run_pipeline(&code)?;
+    Ok(())
 }

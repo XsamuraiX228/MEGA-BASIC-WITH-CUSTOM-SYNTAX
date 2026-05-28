@@ -1,38 +1,53 @@
-pub mod main_logic;
-pub mod io;
+use crate::{
+    dialect::SyntaxDict, 
+    frontend::{lexer::Lexer, parser::Parser},
+    runtime::interpreter::Interpreter,
+};
+pub mod dialect;
+pub mod frontend;
+pub mod runtime;
+pub mod io; 
 
-pub mod settings {
-    use crate::main_logic::syntaxd::{SyntaxDict};
-    use crate::main_logic::lexer::Lexer;
-    use crate::main_logic::parser::Parser;
-    use crate::main_logic::interpreter::Interpreter;
-    use crate::io::scanner::scan;
-    use std::path::PathBuf;
 
-    pub fn create_lexer<'a>(input: &'a str, config: &'a SyntaxDict) -> Lexer<'a> {
-        Lexer::new(input, config)
-    }
+/// Run the code (Preprocessor -> Lexer -> Parser -> Interprenter)
+pub fn run_pipeline(raw_code: &str) -> Result<(), String> {
+    // 1. Looking for #mode and set dialect::SyntaxDict
+    let mut config = SyntaxDict::get_dict("ENGLISH");
+    
+    // Variable-pointer to the part of the parsing code
+    let mut code_to_parse = raw_code;
 
-    pub fn scan_code(dir: &str) -> Result<Vec<PathBuf>, String> {
-        scan(dir).map_err(|e| format!("Coudln't read dir {dir}: {e}"))
-    }
-
-    pub fn load_code(path: &std::path::PathBuf) -> Result<String, std::io::Error> {
-        std::fs::read_to_string(path)
-    }
-
-    pub fn run<'a>(program: &'a str, config: SyntaxDict) {
-        // 2. Создаем лексер (передаем config по ссылке &config) и получаем токены
-        let mut lexer = create_lexer(program, &config);
-        let tokens = lexer.tokenize();
+    if let Some(first_line) = raw_code.lines().next() {
+        let trimmed = first_line.trim();
         
-        // 3. Передаем токены в парсер и строим дерево команд (AST)
-        let mut parser = Parser::new(tokens);
-        let commands = parser.parse().expect("Expected Vec<Command>");
-        //dbg!(&commands);
-        
-        // 4. Запускаем интерпретатор на выполнение кода
-        let mut interpreter = Interpreter::new();
-        interpreter.get_marks(&commands);
+        if trimmed.starts_with("#mode") {
+            if let (Some(start_quote), Some(end_quote)) = (trimmed.find('"'), trimmed.rfind('"')) {
+                if start_quote != end_quote {
+                    let dict_name = &trimmed[start_quote + 1..end_quote]; 
+                    config = SyntaxDict::get_dict(dict_name); 
+                    println!("[Preprocessor]: Dictionary for language successfully connected: {}", dict_name);
+                }
+            }
+            if let Some(pos) = raw_code.find('\n') {
+                code_to_parse = &raw_code[pos + 1..];
+            }
+        }
     }
+
+    // 2. Call frontend::lexer::Lexer::new().tokenize()
+    let mut lexer = Lexer::new(code_to_parse, &config);
+    let tokens = lexer.tokenize();
+
+    // 3. Call frontend::parser::Parser::new().parse()
+    let mut parser = Parser::new(tokens);
+    let stmt = parser.parse()?;
+
+    // 4. Create runtime::interpreter::Interpreter
+    let mut interpreter = Interpreter::new();
+
+    // 5. Get marks and run execute()
+    let marks = interpreter.pre_scan_labels(&stmt);
+    interpreter.execute(&stmt, &marks)?;
+
+    Ok(())
 }

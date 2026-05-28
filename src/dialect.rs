@@ -1,13 +1,4 @@
 use std::collections::HashMap;
-
-pub enum Dictionaries {
-    Russian,
-    English,
-    Emoji,
-    Crab,
-    Brainrot
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyWordType {
     Let,
@@ -39,7 +30,7 @@ impl SyntaxDict {
         Self { keywords }
     }
 
-    // Кастомный русский синтаксис!
+
     fn russian_style() -> Self {
         let mut keywords = HashMap::new();
         keywords.insert("ПУСТЬ".to_string(), KeyWordType::Let);

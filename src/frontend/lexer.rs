@@ -1,23 +1,6 @@
-use super::syntaxd::{SyntaxDict, KeyWordType};
-
-const VALID_OPERATORS: [char; 7] = ['+', '-', '*', '/', '^', '(', ')'];
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Tokens<'a> {   
-    KeyWord(KeyWordType), // Let, Input, Print, If, Then, Random
-    Ident(&'a str), // simple string
-    Text(&'a str),
-    Number(i64),  // i64 number
-    Equal, // =
-    DoubleEqual, // ==
-    NonEqual, // !=
-    Op(char), // ['+', '-', '*', '/', '^', '(', ')']
-    Newline, // \n
-    Mark(&'a str), // e.g :loop 
-    Less,
-    Greater,
-}
-
+use crate::dialect::{SyntaxDict};
+use super::token::Token;
+use super::token::VALID_OPERATORS;
 pub struct Lexer<'a> {
     input: &'a str,
     pos: usize,
@@ -33,7 +16,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn next_token(&mut self) -> Option<Tokens<'a>> {
+    fn next_token(&mut self) -> Option<Token<'a>> {
         let bytes = self.input.as_bytes();
         while self.pos < self.input.len() && bytes[self.pos] == b' '  {
             self.pos += 1
@@ -47,48 +30,48 @@ impl<'a> Lexer<'a> {
             '=' => {
                 if self.pos + 1 < bytes.len() && bytes[self.pos + 1] == b'=' {
                     self.pos += 2;
-                    return Some(Tokens::DoubleEqual)
+                    return Some(Token::DoubleEqual)
                 }
                 self.pos += 1;
-                return Some(Tokens::Equal);
+                return Some(Token::Equal);
             }
             '!' => {
                 if self.pos + 1 < bytes.len() && bytes[self.pos + 1] == b'=' {
                     self.pos += 2;
-                    return Some(Tokens::NonEqual)
+                    return Some(Token::NonEqual)
                 }
                 self.pos += 1;
-                return Some(Tokens::Op('!'));
+                return Some(Token::Op('!'));
             }
             '<' => {
                 self.pos += 1;
-                return Some(Tokens::Less);
+                return Some(Token::Less);
             }
             '>' => {
                 self.pos += 1;
-                return Some(Tokens::Greater); 
+                return Some(Token::Greater); 
             }
             '\r' => {
                 self.pos += 1;
                 if self.pos < self.input.len() && bytes[self.pos] == b'\n' {
                     self.pos += 1;
                 }
-                Some(Tokens::Newline)
+                Some(Token::Newline)
             }
             '\u{fe0f}' => {
                 self.pos += 1;
                 if self.pos < self.input.len() && bytes[self.pos] == b'\n' {
                     self.pos += 1;
                 }
-                Some(Tokens::Newline)
+                Some(Token::Newline)
             }
             '\n' => {
                 self.pos += 1;
-                return Some(Tokens::Newline);
+                return Some(Token::Newline);
             }
             op if VALID_OPERATORS.contains(&op) => {
                 self.pos += 1;
-                return Some(Tokens::Op(ch));
+                return Some(Token::Op(ch));
             }
             '"' => {
                 self.pos += 1; 
@@ -100,7 +83,7 @@ impl<'a> Lexer<'a> {
                 
                 let text_str = &self.input[start..self.pos];
                 self.pos += 1; 
-                Some(Tokens::Text(text_str))
+                Some(Token::Text(text_str))
             }
             ':' => {
                 self.pos += 1;
@@ -117,7 +100,7 @@ impl<'a> Lexer<'a> {
                         self.pos += current_char.len_utf8();
                     }
                 }
-                Some(Tokens::Mark(&self.input[start..self.pos]))
+                Some(Token::Mark(&self.input[start..self.pos]))
             }
             '0'..='9' => {
                 let start = self.pos;
@@ -126,7 +109,7 @@ impl<'a> Lexer<'a> {
                 }
                 let num_str = &self.input[start..self.pos];
                 let number = num_str.parse::<i64>().unwrap();
-                return Some(Tokens::Number(number));
+                return Some(Token::Number(number));
             }
             _ => {
                 let start = self.pos;
@@ -144,13 +127,13 @@ impl<'a> Lexer<'a> {
                 }
                 let word_str = &self.input[start..self.pos];
                 if let Some(kw_type) = self.config.keywords.get(word_str) {
-                    return Some(Tokens::KeyWord(kw_type.clone()));
+                    return Some(Token::KeyWord(kw_type.clone()));
                 }
-                Some(Tokens::Ident(word_str))
+                Some(Token::Ident(word_str))
             }
         }
     }
-    pub fn tokenize(&mut self) -> Vec<Tokens<'a>> {
+    pub fn tokenize(&mut self) -> Vec<Token<'a>> {
         let mut tokens = Vec::new();
         while let Some(token) = self.next_token() {
             tokens.push(token);

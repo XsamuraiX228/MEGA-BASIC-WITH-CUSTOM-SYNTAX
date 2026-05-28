@@ -2,7 +2,6 @@ use std::fs;
 use std::path::PathBuf;
 
 pub fn scan(dir: &str) -> Result<Vec<PathBuf>, std::io::Error> {
-    // read_dir(dir)? — знак вопроса сразу вернет ошибку наружу, если папки нет
     let entries = fs::read_dir(dir)?;
 
     let results = entries
@@ -14,4 +13,12 @@ pub fn scan(dir: &str) -> Result<Vec<PathBuf>, std::io::Error> {
         .collect(); 
 
     Ok(results)
+}
+
+pub fn scan_code(dir: &str) -> Result<Vec<PathBuf>, String> {
+    scan(dir).map_err(|e| format!("Coudln't read dir {dir}: {e}"))
+}
+
+pub fn load_code(path: &std::path::PathBuf) -> Result<String, std::io::Error> {
+    std::fs::read_to_string(path)
 }
