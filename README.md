@@ -1,176 +1,73 @@
-# 🧠 MEGA-BASIC — Interpreter with Custom Syntax
-
-A toy programming language interpreter written in **Rust**, built from scratch to understand how lexers, parsers, and interpreters actually work.
-
-The twist: **the syntax is fully swappable**. Write the same program in English, Russian, Emoji, or Crab 🦀 — it all runs the same way under the hood.
-
----
-
-## ✨ Features
-
-- **Multi-syntax support** — swap keyword dictionaries at runtime
-- **Pratt parser** — correct operator precedence with prefix, infix, and postfix operators
-- **Variables** — assign, read, and reuse
-- **Math** — `+` `-` `*` `/` `^` `!` with full precedence, unary minus, factorial, and parentheses
-- **Conditionals** — `IF ... THEN ...` with `==`, `!=`, `<`, `>`
-- **Labels & GOTO** — `Turing-complete` control flow
-- **String printing** — `PRINT "hello"`
-- **Random numbers** — `RANDOM x 1 100`
-- **Run from file** — pass a `.bas` file as CLI argument
-- **Zero-copy lexer** — operates on `&str` slices with Rust lifetimes, no unnecessary allocations
-
----
-
-## Syntax Dialects
-
-| Feature   | English   | Russian  | Emoji | Crab  |
-|-----------|-----------|----------|-------|-------|
-| Assign    | `LET`     | `ПУСТЬ`  | `✍`  | `🦀`  |
-| Print     | `PRINT`   | `ПЕЧАТЬ` | `🖨`  | `📢`  |
-| Input     | `INPUT`   | `ВВОД`   | `⌨`  | `⚓`  |
-| If        | `IF`      | `ЕСЛИ`   | `❓`  | `🌊`  |
-| Then      | `THEN`    | `ТО`     | `➡`  | `🚢`  |
-| Goto      | `GOTO`    | `ИДИ`    | `🚀`  | `🚀`  |
-| Random    | `RANDOM`  | `РАНДОМ` | `🎲`  | `🎲`  |
-| End       | `END`     | `СТОП`   | `⛔`  | `⛔`  |
-
----
-
-## 📝 Example Programs
-
-### English
-```
-#mode "ENGLISH"
-RANDOM SECRET 1 100
-LET TRIES = 0
-PRINT "--- GUESS THE NUMBER GAME ---"
-:game_loop
-PRINT "Enter your guess:"
-INPUT GUESS
-LET TRIES = TRIES + 1
-IF GUESS == SECRET THEN GOTO win
-IF GUESS < SECRET THEN GOTO too_low
-IF GUESS > SECRET THEN GOTO too_high
-:too_low
-PRINT "Too low! Try again."
-GOTO game_loop
-:too_high
-PRINT "Too high! Try again."
-GOTO game_loop
-:win
-PRINT "YOU WIN!!!"
-PRINT "Total tries:"
-PRINT TRIES
-```
-
-### Russian
-```
-#mode "RUSSIAN"
-ПУСТЬ Х = 15
-ПУСТЬ У = 10
-ЕСЛИ Х != У ТО ПЕЧАТЬ Х
-ПЕЧАТЬ У
-```
-
-### Emoji
-```
-#mode "EMOJI"
-✍ X = 10
-✍ Y = 5
-❓ X > Y ➡ 🖨 X
-🖨 Y
-```
-
-### Crab 🦀
-```
-#mode "CRAB"
-🦀 X = 42
-📢 "крабы захватили мир"
-📢 X
-```
-
----
-
-## ⚙️ Math Operations
-
-| Operator | Description       | Example        |
-|----------|-------------------|----------------|
-| `+`      | Addition          | `LET x = 2 + 3`|
-| `-`      | Subtraction       | `LET x = 5 - 1`|
-| `*`      | Multiplication    | `LET x = 4 * 3`|
-| `/`      | Division          | `LET x = 8 / 2`|
-| `^`      | Power (right-assoc) | `LET x = 2^8`|
-| `!`      | Factorial (postfix) | `LET x = 5!` |
-| `-x`     | Unary minus       | `LET x = -5`   |
-| `()`     | Grouping          | `LET x = (2+3)*4`|
-
----
-
-## 🚀 Running
-
-### From source
-
-```bash
-git clone https://github.com/XsamuraiX228/MEGA-BASIC-WITH-CUSTOM-SYNTAX
-cd MEGA-BASIC-WITH-CUSTOM-SYNTAX
-cargo run
-```
-
-### Example file
-
-Save a program as `game.bas` to folder `FILES` and run:
-```bash
-cargo run
-```
-
----
+Hello there! This is a simple, custom programming languages, written fully on Rust.
 
 ## 🏗️ Architecture
 
 ```
+examples/                # Code snippets and example scripts written in the custom language
 src/
-├── main.rs              # Entering
-├── lib.rs               # Main pipeline
-├── dialect.rs           # Dictionaries 
-├── frontend/            # Module to create AST 
-│   ├── mod.rs           # submodules 
-│   ├── token.rs         
-│   ├── lexer.rs         
-│   ├── ast.rs           
-│   └── parser.rs        
-└── runtime/             # Interprenter
-    ├── mod.rs
-    └── interpreter.rs   
+├── main.rs              # Entry point of the application
+├── lib.rs               # Main orchestration pipeline
+├── dialect.rs           # Core dictionary configurations for hot-swappable syntax
+├── frontend/            # Frontend interprenter module (Lexer, Parser, and AST)
+│   ├── mod.rs           # Frontend submodule declarations
+│   ├── token.rs         # Strongly-typed Lexer tokens and operators
+│   ├── lexer.rs         # Tokenizer: converts raw source strings into Vec<Token<'a>>
+│   ├── ast.rs           # Abstract Syntax Tree structures and math evaluation logic
+│   └── parser.rs        # Pratt Parser engine: converts Vec<Token<'a>> into Vec<Statement<'a>>
+└── runtime/             # Core execution engine
+    ├── mod.rs           # Runtime submodule declarations
+    └── interpreter.rs   # Iterates through Vec<Statement<'a>> via optimized index lookups
 ```
 
-The pipeline is:
+## 🛠️ Getting Started
 
+### Prerequisites
+Make sure you have [Rust and Cargo](https://rustup.rs/) installed.
+
+### Running a Script
+To execute a custom program, write you file in examples and type in console:
+```bash
+cargo run
 ```
-source &str
-   └─► Lexer  →  Vec<Tokens<'a>>
-         └─► Parser  →  Vec<Command<'a>>
-               └─► Interpreter  →  output
+Example of a file:
+```rust
+#mode "ENGLISH"
+LET X = 1
+WHILE X <= 10 THEN
+    IF X % 2 == 0 THEN
+        PRINT X
+        PRINT " is even"
+    ELSE
+        PRINT X
+        PRINT " is odd"
+    END
+    IF X == 5 THEN
+        PRINT "Halfway there!"
+    END
+    LET X = X + 1
+WEND
+PRINT "Done!"
 ```
+Writing '#mode "DICT NAME" is specific, because lexer needs to understand what Dictionary is used at the moment'
 
-All stages share the same lifetime `'a` tied to the original source string — no unnecessary cloning, no garbage collector needed.
+## 🧩 How Custom Syntax (Dialects) Works
 
----
-
-## 🧩 How Custom Syntax Works
-
-Each dialect is just a `HashMap<String, KeyWordType>`:
+The core feature of this interpreter is its ability to support completely fluid, user-defined programming syntaxes (dialects) — including localization into other languages or mapping commands entirely to emojis.
+Adding a new language or variant requires zero changes to the parser engine. You just expand the dictionary registry in `dialect.rs`:
 
 ```rust
-fn crab_style() -> SyntaxDict {
-    let mut keywords = HashMap::new();
-    keywords.insert("🦀".to_string(), KeyWordType::Let);
-    keywords.insert("📢".to_string(), KeyWordType::Print);
-    // ...
-    SyntaxDict { keywords }
-}
-```
+// Inside dialect.rs
+let mut english = HashMap::new();
+english.insert("LET", KeyWordType::Let);
+english.insert("PRINT", KeyWordType::Print);
+english.insert("WHILE", KeyWordType::While);
+english.insert("WEND", KeyWordType::Wend);
 
-The lexer looks up every word/emoji in this map. The parser and interpreter are completely unaware of which dialect is running — they only see `KeyWordType` variants.
+let mut emoji_mode = HashMap::new();
+emoji_mode.insert("📦", KeyWordType::Let);
+emoji_mode.insert("📢", KeyWordType::Print);
+emoji_mode.insert("🔄", KeyWordType::While);
+emoji_mode.insert("🛑", KeyWordType::Wend);
 
 ## 📄 License
 
