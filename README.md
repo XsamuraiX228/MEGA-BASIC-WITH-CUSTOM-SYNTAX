@@ -1,4 +1,6 @@
-Hello there! This is a simple, custom programming languages, written fully on Rust.
+Hello there!
+# 🦎 Chameleon
+A high-performance interpreted programming language engine with morphic syntax mapping, implemented entirely in Rust.
 
 ## 🏗️ Architecture
 
