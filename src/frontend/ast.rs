@@ -1,56 +1,64 @@
 use std::collections::HashMap;
-
+use std::cell::Cell;
+use super::token::OpType;
 #[derive(Debug, PartialEq)]
 pub enum Expression<'a> {
     Atom(i64),
     Variable(&'a str),
-    Cons(char, Vec<Expression<'a>>)
+    Cons(OpType, Vec<Expression<'a>>)
 }
 
 impl<'a> Expression<'a> {
     pub fn evaluate(&self, env: &HashMap<&'a str, i64>) -> Result<i64, String> {
         match self {
-            Self::Atom(n) => {
-                Ok(*n)
-            },
-            Self::Variable(name) => {
+            Expression::Atom(n) => Ok(*n),
+            Expression::Variable(name) => {
                 env.get(*name)
                     .cloned()
-                    .ok_or_else(|| format!("Runtime Error: variable '{}' not found!", name))
+                    .ok_or_else(|| format!("Variable '{}' not found", name))
             }
-            Self::Cons(op,args ) => {
-                match args.len() {
-                    1 => {
-                        let rhs = args[0].evaluate(env)?;
-                        match op {
-                            '+' => Ok(rhs),
-                            '-' => Ok(-rhs),
-                            '!' => Ok(factorial(rhs)),
-                            t => Err(format!("Wrong operator {t} ")),
+            Expression::Cons(op, args) => {
+                match op {
+                    OpType::Plus => {
+                        if args.len() == 1 {
+                            Ok(args[0].evaluate(env)?)  // унарный плюс
+                        } else {
+                            Ok(args[0].evaluate(env)? + args[1].evaluate(env)?)
                         }
                     }
-
-                    2 => {
-                        let lhs = args[0].evaluate(env)?;
+                    OpType::Minus => {
+                        if args.len() == 1 {
+                            Ok(-args[0].evaluate(env)?)  // унарный минус
+                        } else {
+                            Ok(args[0].evaluate(env)? - args[1].evaluate(env)?)
+                        }
+                    }
+                    OpType::Multiply => {
+                        Ok(args[0].evaluate(env)? * args[1].evaluate(env)?)
+                    }
+                    OpType::Divide => {
                         let rhs = args[1].evaluate(env)?;
-
-                        match op {
-                            '+' => Ok(lhs + rhs),
-                            '-' => Ok(lhs - rhs),
-                            '*' => Ok(lhs * rhs),
-                            '/' => {
-                                if rhs == 0 {
-                                    return Err("Runtime Error: Division by zero".to_string());
-                                }
-                                Ok(lhs / rhs)
-                            }
-                            '^' => Ok(lhs.pow(rhs as u32)),
-                            _ => return Err(format!("Unknow operator {}", op))
+                        if rhs == 0 {
+                            return Err("Division by zero".to_string());
                         }
+                        Ok(args[0].evaluate(env)? / rhs)
                     }
-                    _ => Err(format!("Wrong letght of args"))
+                    OpType::Mod => {
+                        Ok(args[0].evaluate(env)? % args[1].evaluate(env)?)
+                    }
+                    OpType::Power => {
+                        let base = args[0].evaluate(env)?;
+                        let exp = args[1].evaluate(env)?;
+                        Ok(base.pow(exp as u32))
+                    }
+                    OpType::Factorial => {
+                        let val = args[0].evaluate(env)?;
+                        Ok(factorial(val))
+                    }
+                    OpType::LParen | OpType::RParen => {
+                        Err("Parentheses should not appear in evaluation".to_string())
+                    }
                 }
-                
             }
         }
     }
@@ -72,9 +80,17 @@ pub enum Statement<'a> {
     Input {name: &'a str}, // Input the value
     PrintStr(&'a str), // Print strings
     PrintVar(&'a str), // Get value from variables and print it
-    IF {left_value: Expression<'a>, cmp: char, right_value: Expression<'a>}, // If statement
+    If {
+        left_value: Expression<'a>, 
+        cmp: &'a str, 
+        right_value: Expression<'a>, 
+        then_block: Vec<Statement<'a>>, 
+        else_block: Vec<Statement<'a>>,
+    }, // If statement
+    While {left_value: Expression<'a>, cmp: &'a str, right_value: Expression<'a>, end_idx: Cell<usize>},
+    WEnd {start_idx: usize},
     Label {name: &'a str}, // Mark to control the position where the GOTO will jump
-    GOTO {label: &'a str}, // Jump to mark in code
+    Goto {label: &'a str}, // Jump to mark in code
     Random {name:&'a str, min: i64, max: i64}, // Set random value to variable
     End, // Stop the program
 } 

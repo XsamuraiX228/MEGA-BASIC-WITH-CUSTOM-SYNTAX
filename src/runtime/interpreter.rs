@@ -6,17 +6,18 @@ use rand::Rng;
 pub enum Signal<'a> {
     Continue,
     Jump {label: &'a str},
+    LoopTo (usize),
     SkipNext,
     Exit,
 }
 
-pub struct Enviroment<'a> {
+pub struct Environment<'a> {
     map: HashMap<&'a str, i64>
 }
 
-impl<'a> Enviroment<'a> {
+impl<'a> Environment<'a> {
     pub fn new() -> Self {
-        Enviroment { map: HashMap::new() }
+        Environment { map: HashMap::new() }
     }
 
     pub fn set(&mut self, key: &'a str, value: i64) {
@@ -32,12 +33,12 @@ impl<'a> Enviroment<'a> {
 }
 
 pub struct Interpreter<'a> {
-    env: Enviroment<'a>
+    env: Environment<'a>
 }
 
 impl<'a> Interpreter<'a> {
     pub fn new() -> Self {
-        Self { env: Enviroment::new() }
+        Self { env: Environment::new() }
     }
 
     // Scan full code to get the positions of labels, which will be used fo GOTO function
@@ -50,7 +51,6 @@ impl<'a> Interpreter<'a> {
         }
         dbg!(&marks);
         marks
-        
     }
 
     pub fn execute(&mut self, commands: &[Statement<'a>], labels: &HashMap<&'a str, usize>) -> Result<(), String> {
@@ -67,6 +67,9 @@ impl<'a> Interpreter<'a> {
                     } else {
                         return Err(format!("Runtime Error: Label '{}' not found", label));
                     }
+                }
+                Signal::LoopTo(target_idx) => {
+                    command_idx = target_idx;
                 }
                 Signal::SkipNext => {
                     command_idx += 2;
@@ -111,28 +114,72 @@ impl<'a> Interpreter<'a> {
                 Ok(Signal::Continue)
             }
 
-            Statement::GOTO { label } => {
+            Statement::Goto { label } => {
                 Ok(Signal::Jump { label })
             }
             
             
-            Statement::IF { left_value, cmp, right_value} => {
+            Statement::If { 
+                left_value, 
+                cmp, 
+                right_value,
+                then_block,
+                else_block} => {
                 let lhs = left_value.evaluate(&self.env.map)?;
                 let rhs = right_value.evaluate(&self.env.map)?;
 
-                let condition = match cmp {
-                    '=' => lhs == rhs,
-                    '!' => lhs != rhs,
-                    '<' => lhs < rhs, 
-                    '>' => lhs > rhs,
+                let condition = match *cmp {
+                    "=" => lhs == rhs,
+                    "!" => lhs != rhs,
+                    ">" => lhs > rhs,
+                    "<" => lhs < rhs,
+                    ">=" => lhs >= rhs,
+                    "<=" => lhs <= rhs,
                     _ => unreachable!(),
                 };
 
+                let block_execute = if condition {then_block} else {else_block};
+
+                for stmt in block_execute {
+                    match self.execute_single(stmt)? {
+                        Signal::Jump { label } => return Ok(Signal::Jump { label }),
+                        Signal::LoopTo(idx) => return Ok(Signal::LoopTo(idx)),
+                        Signal::Exit => return Ok(Signal::Exit),
+                        Signal::SkipNext => continue,
+                        Signal::Continue => continue,
+                        }
+                    }
+                Ok(Signal::Continue)
+            }
+
+            Statement::While { left_value, cmp, right_value, end_idx } => {
+                // 1. Get value of experessions from left and right sides
+                let lhs = left_value.evaluate(&self.env.map)?;
+                let rhs = right_value.evaluate(&self.env.map)?;
+
+                // 2.Check the operator
+                let condition = match *cmp {
+                    "="  => lhs == rhs,
+                    "!"  => lhs != rhs,
+                    "<"  => lhs < rhs,
+                    ">"  => lhs > rhs,
+                    "<=" => lhs <= rhs,
+                    ">=" => lhs >= rhs,
+                    _    => unreachable!("Unknown operators in WHILE"),
+                };
+
                 if condition {
+                    // True -> move inside the while loop
                     Ok(Signal::Continue)
                 } else {
-                    Ok(Signal::SkipNext)
+                    // False -> our end_idx jump from while to the next line after WEND (while end)
+                    Ok(Signal::LoopTo(end_idx.get()))
                 }
+            }
+
+            Statement::WEnd { start_idx } => {
+                // when come to WEND, jump to WHILE again
+                Ok(Signal::LoopTo(*start_idx))
             }
 
             Statement::Random { name, min, max } => {
@@ -142,7 +189,6 @@ impl<'a> Interpreter<'a> {
 
                 let random_value: i64 = rng.gen_range(min_val..=max_val);
                 
-                // Записываем его в наше окружение, как обычный LET
                 self.env.set(name, random_value);
                 Ok(Signal::Continue)
             }

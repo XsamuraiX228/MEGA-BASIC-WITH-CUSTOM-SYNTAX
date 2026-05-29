@@ -1,0 +1,9 @@
+#mode "ENGLISH"
+LET I = 1
+LET SUM = 0
+WHILE I <= 10 THEN
+    IF I % 2 == 0 THEN
+        LET SUM = SUM + I
+    END
+    LET I = I + 1
+WEND
