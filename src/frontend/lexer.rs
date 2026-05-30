@@ -33,7 +33,7 @@ impl<'a> Lexer<'a> {
                     return Some(Token::CmpOp(CmpOp::DoubleEqual))
                 }
                 self.pos += 1;
-                return Some(Token::CmpOp(CmpOp::Equal));
+                return Some(Token::CmpOp(CmpOp::Equal))
             }
             '!' => {
                 if self.pos + 1 < bytes.len() && bytes[self.pos + 1] == b'=' {
@@ -41,34 +41,34 @@ impl<'a> Lexer<'a> {
                     return Some(Token::CmpOp(CmpOp::NonEqual))
                 }
                 self.pos += 1;
-                return Some(Token::OpType(OpType::Factorial));
+                return Some(Token::OpType(OpType::Factorial))
             }
             '<' => {
                 if self.pos + 1 < bytes.len() && bytes[self.pos + 1] == b'=' {
                     self.pos += 2;
-                    return Some(Token::CmpOp(CmpOp::LessEqual));
+                    return Some(Token::CmpOp(CmpOp::LessEqual))
                 }
                 self.pos += 1;
-                return Some(Token::CmpOp(CmpOp::Less));
+                return Some(Token::CmpOp(CmpOp::Less))
             }
             '>' => {
                 if self.pos + 1 < bytes.len() && bytes[self.pos + 1] == b'=' {
                     self.pos += 2;
-                    return Some(Token::CmpOp(CmpOp::GreaterEqual));
+                    return Some(Token::CmpOp(CmpOp::GreaterEqual))
                 }
                 self.pos += 1;
-                return Some(Token::CmpOp(CmpOp::Greater));
+                return Some(Token::CmpOp(CmpOp::Greater))
             }
             '\r' => {
                 self.pos += 1;
                 if self.pos < self.input.len() && bytes[self.pos] == b'\n' {
                     self.pos += 1;
                 }
-                Some(Token::Newline)
+                return Some(Token::Newline)
             }
             '\n' => {
                 self.pos += 1;
-                return Some(Token::Newline);
+                return Some(Token::Newline)
             }
             op if VALID_OPERATORS.contains(&op) => {
                 self.pos += 1;
@@ -76,14 +76,13 @@ impl<'a> Lexer<'a> {
                     '+' => OpType::Plus,
                     '-' => OpType::Minus,
                     '*' => OpType::Multiply,
-                    '/' => OpType::Divide,
                     '%' => OpType::Mod,
                     '^' => OpType::Power,
                     '(' => OpType::LParen,
                     ')' => OpType::RParen,
                     _ => unreachable!(),
                 };
-                return Some(Token::OpType(op_type));
+                return Some(Token::OpType(op_type))
             }
             '"' => {
                 self.pos += 1; 
@@ -95,8 +94,19 @@ impl<'a> Lexer<'a> {
                 
                 let text_str = &self.input[start..self.pos];
                 self.pos += 1; 
-                Some(Token::Literal(Literal::Text(text_str)))
+                return Some(Token::Literal(Literal::Text(text_str)))
             }
+            '/' => {
+                if self.pos + 1 < bytes.len() && bytes[self.pos + 1] == b'/' {
+                    self.pos += 2; // skip //
+                    while self.pos < bytes.len() && bytes[self.pos] != b'\n' {
+                        self.pos += 1;
+                    }
+                    return self.next_token(); 
+                }
+                self.pos += 1;
+                return Some(Token::OpType(OpType::Divide))
+            },
             ':' => {
                 self.pos += 1;
                 let start = self.pos;
@@ -112,7 +122,11 @@ impl<'a> Lexer<'a> {
                         self.pos += current_char.len_utf8();
                     }
                 }
-                Some(Token::Mark(&self.input[start..self.pos]))
+                return Some(Token::Mark(&self.input[start..self.pos]))
+            }
+            ';' => {
+                self.pos += 1;
+                Some(Token::Semicolon)
             }
             '0'..='9' => {
                 let start = self.pos;
@@ -121,7 +135,7 @@ impl<'a> Lexer<'a> {
                 }
                 let num_str = &self.input[start..self.pos];
                 let number = num_str.parse::<i64>().unwrap();
-                return Some(Token::Literal(Literal::Number(number)));
+                return Some(Token::Literal(Literal::Number(number)))
             }
             _ => {
                 let start = self.pos;
@@ -130,6 +144,7 @@ impl<'a> Lexer<'a> {
                         if current_char.is_whitespace() 
                             || current_char == '='
                             || current_char == '!'
+                            || current_char == ';'
                             || VALID_OPERATORS.contains(&current_char) 
                         {
                             break;
@@ -141,7 +156,7 @@ impl<'a> Lexer<'a> {
                 if let Some(kw_type) = self.config.keywords.get(word_str) {
                     return Some(Token::KeyWord(kw_type.clone()));
                 }
-                Some(Token::Literal(Literal::Ident(word_str)))
+                return Some(Token::Literal(Literal::Ident(word_str)))
             }
         }
     }
@@ -150,7 +165,7 @@ impl<'a> Lexer<'a> {
         while let Some(token) = self.next_token() {
             tokens.push(token);
         }
+        tokens.reverse();
         tokens
     }
 }
-

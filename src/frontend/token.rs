@@ -1,4 +1,4 @@
-pub const VALID_OPERATORS: [char; 8] = ['+', '-', '*', '/', '%', '^', '(', ')'];
+pub const VALID_OPERATORS: [char; 7] = ['+', '-', '*', '%', '^', '(', ')'];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyWordType {
@@ -12,6 +12,10 @@ pub enum KeyWordType {
     Random,
     While,
     Wend,
+    For,
+    To,
+    Step,
+    Next,
     End,
 }
 
@@ -35,8 +39,8 @@ pub enum CmpOp {
     NonEqual, // !=
     LessEqual, // <=
     GreaterEqual, // >=
-    Less,
-    Greater,
+    Less, // <
+    Greater, // >
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Literal<'a> {
@@ -52,16 +56,11 @@ pub enum Token<'a> {
     CmpOp(CmpOp),
     Literal(Literal<'a>),
     Mark(&'a str), // e.g :loop 
+    Semicolon,
     Newline, // \n
 }
 
-impl<'a> Token<'a> {
-    pub fn is_newline(&self) -> bool {
-        matches!(self, Token::Newline)
-    }
-}
-
-// В token.rs
+// token.rs
 use std::fmt;
 
 impl fmt::Display for OpType {
@@ -116,6 +115,10 @@ impl fmt::Display for KeyWordType {
             KeyWordType::Random => "RANDOM",
             KeyWordType::While => "WHILE",
             KeyWordType::Wend => "WEND",
+            KeyWordType::For => "FOR",
+            KeyWordType::To => "TO",
+            KeyWordType::Step => "STEP",
+            KeyWordType::Next => "NEXT",
             KeyWordType::End => "END",
         };
         write!(f, "{}", s)
@@ -130,6 +133,7 @@ impl<'a> fmt::Display for Token<'a> {
             Token::Literal(lit) => write!(f, "{}", lit),
             Token::Mark(name) => write!(f, "Mark(:{})", name),
             Token::Newline => write!(f, "Newline"),
+            Token::Semicolon => write!(f, "Semicolon"),
         }
     }
 }

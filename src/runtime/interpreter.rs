@@ -47,7 +47,6 @@ impl<'a> Interpreter<'a> {
                 marks.insert(name, idx);
             }
         }
-        dbg!(&marks);
         marks
     }
 
@@ -95,14 +94,14 @@ impl<'a> Interpreter<'a> {
                 Ok(Signal::Continue)
             }
 
-            Statement::PrintStr(text) => {
-                println!("{}", text);
+            Statement::PrintStr(text, newline) => {
+                if *newline {println!("{text}")} else {print!("{text}")}
                 Ok(Signal::Continue)
             }
 
-            Statement::PrintVar(name) => {
+            Statement::PrintVar(name, newline) => {
                 let val = self.env.get(name)?;
-                println!("{val}");
+                if *newline {println!("{val}")} else {print!("{val}")}
                 Ok(Signal::Continue)
             }
 
@@ -142,7 +141,7 @@ impl<'a> Interpreter<'a> {
                 Ok(Signal::Continue)
             }
 
-            Statement::While { left_value, cmp, right_value, body } => {
+            Statement::While { left_value, cmp, right_value, block } => {
                 loop {
                     // 1. Get value of experessions from left and right sides
                     let lhs = left_value.evaluate(&self.env.map)?;
@@ -158,11 +157,10 @@ impl<'a> Interpreter<'a> {
                         ">=" => lhs >= rhs,
                         _    => unreachable!("Unknown operators in WHILE"),
                     };
-
                     if !condition {
                         break;
                     }
-                    for stmt in body {
+                    for stmt in block {
                         let signal = self.execute_single(stmt)?;
                         if signal != Signal::Continue {
                             return Ok(signal);
@@ -171,6 +169,33 @@ impl<'a> Interpreter<'a> {
                 }
                 Ok(Signal::Continue)
             }
+
+            Statement::For { increment, start_idx, end_idx, block, step } => {
+                let cmp = if *step >= 0 {"<="} else {">="};
+                self.env.set(increment, *start_idx);
+                loop {
+                    let i = self.env.get(increment)?;
+                    let condition = match cmp {
+                        "<=" => i <= *end_idx,
+                        ">=" => i >= *end_idx,
+                        _ => unreachable!(),
+                    };
+
+                    if !condition {
+                        break;
+                    }
+
+                    for stmt in block {
+                        let signal = self.execute_single(stmt)?;
+                        if signal != Signal::Continue {
+                            return Ok(signal);
+                        }
+                    }
+                    self.env.set(increment, i + *step);
+                }
+                Ok(Signal::Continue)
+            }
+
             Statement::Random { name, min, max } => {
                 let mut rng = rand::thread_rng();
                 let min_val = *min;

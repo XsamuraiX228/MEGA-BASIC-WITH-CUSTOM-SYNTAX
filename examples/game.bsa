@@ -1,19 +1,41 @@
-#mode "ENGLISH"
+PRINT "=== STARTING COMPILER INTEGRATION TEST ==="
+PRINT "Testing: PRINT with trailing semicolon, Pratt parser, and GOTO loops."
+PRINT "=========================================="
 
-LET I = 1
-LET RESULT = 0
+LET ITERATION = 1
+LET MAX_ITERATIONS = 3
 
-WHILE I <= 5 THEN
-    LET J = 1
-    WHILE J <= 5 THEN
-        IF I == J THEN LET RESULT = RESULT + I * J
-        END
-        IF I != J THEN LET RESULT = RESULT + 1
-        END
-        LET J = J + 1
-    WEND
-    LET I = I + 1
-WEND
+:test_loop
+IF ITERATION > MAX_ITERATIONS THEN GOTO test_finished END
 
-PRINT "Result:"
-PRINT RESULT
+PRINT ""
+// Точка с запятой переехала строго в конец команд, которые не должны переносить строку
+PRINT "Running test step ";
+PRINT ITERATION;
+PRINT " of ";
+PRINT MAX_ITERATIONS
+
+PRINT "Enter any integer number: "
+INPUT USER_NUM
+
+// Вычисляем четность
+LET IS_ODD = USER_NUM % 2
+
+// Собираем строку вывода: всё, кроме последнего блока, снабжаем ";" на конце
+PRINT "The number ";
+PRINT USER_NUM;
+
+IF IS_ODD == 0 THEN
+    PRINT " is EVEN (четное)!"
+ELSE
+    PRINT " is ODD (нечетное)!"
+END
+
+LET ITERATION = ITERATION + 1
+GOTO test_loop
+
+:test_finished
+PRINT ""
+PRINT "=========================================="
+PRINT "🎉 TEST SUCCESSFULLY COMPLETED! 🎉"
+END

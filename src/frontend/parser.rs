@@ -8,8 +8,7 @@ pub struct Parser<'a> {
 
 impl<'a> Parser<'a> {
 
-    pub fn new(mut tokens: Vec<Token<'a>>, ) -> Self {
-        tokens.reverse();
+    pub fn new(tokens: Vec<Token<'a>>, ) -> Self {
         Self {tokens}
     }
 
@@ -93,6 +92,7 @@ impl<'a> Parser<'a> {
                 Ok(Statement::Goto { label })
             }
             Token::KeyWord(KeyWordType::While) => self.parse_while(),
+            Token::KeyWord(KeyWordType::For) => self.parse_for(),
             Token::KeyWord(KeyWordType::Else) => {
                 Err("Unexpected ELSE outside of IF block".to_string())
             }
@@ -115,14 +115,29 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_print(&mut self) -> Result<Statement<'a>, String> {
-        // match if we need to print number or string
-        match self.next() {
-            // String 
-            Some(Token::Literal(Literal::Text(text))) => Ok(Statement::PrintStr(text)),
-            // Number or variable which store number
-            Some(Token::Literal(Literal::Ident(name))) => Ok(Statement::PrintVar(name)),
-            other => Err(format!("Expected string or variable after PRINT, found {:?}", other))
-        }
+        // 2. Парсим само значение (строку или переменную)
+        let statement = match self.next() {
+            Some(Token::Literal(Literal::Text(text))) => {
+                // Заглядываем вперед: нет ли точки с запятой в КОНЦЕ? PRINT "Привет" ;
+                if let Some(Token::Semicolon) = self.peek() {
+                    self.next(); // съедаем ;
+                    Statement::PrintStr(text, false) // перенос строки НЕ нужен
+                } else {
+                    Statement::PrintStr(text, true) // используем флаг из начала
+                }
+            }
+            Some(Token::Literal(Literal::Ident(name))) => {
+                // То же самое для переменных: PRINT X ;
+                if let Some(Token::Semicolon) = self.peek() {
+                    self.next(); // съедаем ;
+                    Statement::PrintVar(name, false)
+                } else {
+                    Statement::PrintVar(name, true)
+                }
+            }
+            other => return Err(format!("Expected string or variable after PRINT, found {:?}", other))
+        };
+        Ok(statement)
     }
 
     fn parse_if(&mut self) -> Result<Statement<'a>, String> {
@@ -153,6 +168,7 @@ impl<'a> Parser<'a> {
         // Skip \n
         if let Some(Token::Newline) = self.peek() {
             self.next();
+            
         }
         
         // Get the stop keywords to get the then_block before we meet ELSE
@@ -227,10 +243,49 @@ impl<'a> Parser<'a> {
             self.next();
         }
         let stop_keyword = vec![Token::KeyWord(KeyWordType::Wend)];
-        let stop_block = self.parse_block(&stop_keyword)?;
+        let block = self.parse_block(&stop_keyword)?;
         self.next(); // Consume WEND
 
-        Ok(Statement::While { left_value, cmp, right_value, body: stop_block })
+        Ok(Statement::While { left_value, cmp, right_value, block })
+    }
+
+    fn parse_for(&mut self) -> Result<Statement<'a>, String> {
+        let variable = self.get_name()?;
+
+        if self.next() != Some(Token::CmpOp(CmpOp::Equal)) {
+            return Err(format!("Expected operator = "));
+        }
+
+        let start_idx = self.get_num()?;
+        self.next(); // Consume TO
+        let end_idx = self.get_num()?;
+
+        let step = if let Some(Token::KeyWord(KeyWordType::Step)) = self.peek() {
+            self.next(); // съедаем STEP только если он там есть
+            if let Some(Token::OpType(OpType::Minus)) = self.peek() {
+                self.next(); // съедаем -
+                -self.get_num()?
+            } else {
+                self.get_num()?
+            }
+        } else {
+            1
+        };
+        
+        if let Some(Token::Newline) = self.peek() {
+            self.next();
+        }
+
+        let stop_keyword = vec![Token::KeyWord(KeyWordType::Next)];
+        let block = self.parse_block(&stop_keyword)?;
+        self.next(); // Consume NEXT
+
+        Ok(Statement::For { 
+            increment: variable,
+            start_idx, 
+            end_idx, 
+            block, 
+            step, })
     }
 
     fn parse_random(&mut self) -> Result<Statement<'a>, String> {
