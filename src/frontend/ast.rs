@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::cell::Cell;
 use super::token::OpType;
 #[derive(Debug, PartialEq)]
 pub enum Expression<'a> {
@@ -87,8 +86,7 @@ pub enum Statement<'a> {
         then_block: Vec<Statement<'a>>, 
         else_block: Vec<Statement<'a>>,
     }, // If statement
-    While {left_value: Expression<'a>, cmp: &'a str, right_value: Expression<'a>, end_idx: Cell<usize>},
-    WEnd {start_idx: usize},
+    While {left_value: Expression<'a>, cmp: &'a str, right_value: Expression<'a>, body: Vec<Statement<'a>>},
     Label {name: &'a str}, // Mark to control the position where the GOTO will jump
     Goto {label: &'a str}, // Jump to mark in code
     Random {name:&'a str, min: i64, max: i64}, // Set random value to variable

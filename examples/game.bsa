@@ -1,9 +1,19 @@
 #mode "ENGLISH"
+
 LET I = 1
-LET SUM = 0
-WHILE I <= 10 THEN
-    IF I % 2 == 0 THEN
-        LET SUM = SUM + I
-    END
+LET RESULT = 0
+
+WHILE I <= 5 THEN
+    LET J = 1
+    WHILE J <= 5 THEN
+        IF I == J THEN LET RESULT = RESULT + I * J
+        END
+        IF I != J THEN LET RESULT = RESULT + 1
+        END
+        LET J = J + 1
+    WEND
     LET I = I + 1
 WEND
+
+PRINT "Result:"
+PRINT RESULT

@@ -150,12 +150,6 @@ impl<'a> Lexer<'a> {
         while let Some(token) = self.next_token() {
             tokens.push(token);
         }
-        
-        /* Вывод каждого токена на отдельной строке
-        for (i, token) in tokens.iter().enumerate() {
-            println!("{:3}: {}", i, token);
-        } */
-        
         tokens
     }
 }

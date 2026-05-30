@@ -6,8 +6,6 @@ use rand::Rng;
 pub enum Signal<'a> {
     Continue,
     Jump {label: &'a str},
-    LoopTo (usize),
-    SkipNext,
     Exit,
 }
 
@@ -67,12 +65,6 @@ impl<'a> Interpreter<'a> {
                     } else {
                         return Err(format!("Runtime Error: Label '{}' not found", label));
                     }
-                }
-                Signal::LoopTo(target_idx) => {
-                    command_idx = target_idx;
-                }
-                Signal::SkipNext => {
-                    command_idx += 2;
                 }
                 Signal::Continue => {
                     command_idx += 1
@@ -143,45 +135,42 @@ impl<'a> Interpreter<'a> {
                 for stmt in block_execute {
                     match self.execute_single(stmt)? {
                         Signal::Jump { label } => return Ok(Signal::Jump { label }),
-                        Signal::LoopTo(idx) => return Ok(Signal::LoopTo(idx)),
                         Signal::Exit => return Ok(Signal::Exit),
-                        Signal::SkipNext => continue,
                         Signal::Continue => continue,
-                        }
                     }
+                }
                 Ok(Signal::Continue)
             }
 
-            Statement::While { left_value, cmp, right_value, end_idx } => {
-                // 1. Get value of experessions from left and right sides
-                let lhs = left_value.evaluate(&self.env.map)?;
-                let rhs = right_value.evaluate(&self.env.map)?;
+            Statement::While { left_value, cmp, right_value, body } => {
+                loop {
+                    // 1. Get value of experessions from left and right sides
+                    let lhs = left_value.evaluate(&self.env.map)?;
+                    let rhs = right_value.evaluate(&self.env.map)?;
 
-                // 2.Check the operator
-                let condition = match *cmp {
-                    "="  => lhs == rhs,
-                    "!"  => lhs != rhs,
-                    "<"  => lhs < rhs,
-                    ">"  => lhs > rhs,
-                    "<=" => lhs <= rhs,
-                    ">=" => lhs >= rhs,
-                    _    => unreachable!("Unknown operators in WHILE"),
-                };
+                    // 2.Check the operator
+                    let condition = match *cmp {
+                        "="  => lhs == rhs,
+                        "!"  => lhs != rhs,
+                        "<"  => lhs < rhs,
+                        ">"  => lhs > rhs,
+                        "<=" => lhs <= rhs,
+                        ">=" => lhs >= rhs,
+                        _    => unreachable!("Unknown operators in WHILE"),
+                    };
 
-                if condition {
-                    // True -> move inside the while loop
-                    Ok(Signal::Continue)
-                } else {
-                    // False -> our end_idx jump from while to the next line after WEND (while end)
-                    Ok(Signal::LoopTo(end_idx.get()))
+                    if !condition {
+                        break;
+                    }
+                    for stmt in body {
+                        let signal = self.execute_single(stmt)?;
+                        if signal != Signal::Continue {
+                            return Ok(signal);
+                        }
+                    }
                 }
+                Ok(Signal::Continue)
             }
-
-            Statement::WEnd { start_idx } => {
-                // when come to WEND, jump to WHILE again
-                Ok(Signal::LoopTo(*start_idx))
-            }
-
             Statement::Random { name, min, max } => {
                 let mut rng = rand::thread_rng();
                 let min_val = *min;

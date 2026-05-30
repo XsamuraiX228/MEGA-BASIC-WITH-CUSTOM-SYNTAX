@@ -2,7 +2,6 @@ use crate::frontend::ast::Statement;
 use crate::frontend::token::KeyWordType;
 use super::token::{Token, CmpOp, OpType, Literal};
 use super::ast::Expression;
-use std::cell::Cell;
 pub struct Parser<'a> {
     tokens: Vec<Token<'a>>
 }
@@ -44,15 +43,11 @@ impl<'a> Parser<'a> {
             if stop_tokens.iter().any(|t| t == token) {
                 break;
             }
-            if token == &Token::EOF {
-                break;
-            }
             match token {
                 Token::Newline => {
                     self.next();
                     continue;
                 }
-
                 _ => {
                     let cmd = self.parse_command()?;
                     block_of_commads.push(cmd);
@@ -64,34 +59,8 @@ impl<'a> Parser<'a> {
 
     pub fn parse(&mut self) -> Result<Vec<Statement<'a>>, String> {
         let mut commands = Vec::new();
-        let mut loop_stack: Vec<usize> = Vec::new();
         while let Some(token) = self.peek() {
-            let current_idx = commands.len();
             match token {
-                Token::KeyWord(KeyWordType::While) => {
-                    self.next();
-                    let while_idx = self.parse_while()?;
-
-                    loop_stack.push(current_idx);
-                    commands.push(while_idx);
-                },
-                Token::KeyWord(KeyWordType::Wend) => {
-                    self.next();
-                    if let Some(while_idx) = loop_stack.pop() {
-                        commands.push(Statement::WEnd { start_idx: while_idx });
-
-                        let end_destination = current_idx + 1;
-                        if let Some(Statement::While { 
-                            end_idx, .. }) = commands.get(while_idx) {
-                                end_idx.set(end_destination);
-                        }
-                    } else {
-                        return Err("Syntax Error: 'WEND' without matching 'WHILE'".to_string());
-                    }
-                    if let Some(Token::Newline) = self.peek() {
-                        self.next();
-                    }
-                },
                 Token::Newline => {
                     self.next();
                     continue;
@@ -103,10 +72,6 @@ impl<'a> Parser<'a> {
                 
             }
         }
-        if !loop_stack.is_empty() {
-            println!("{:?}", loop_stack);
-            return Err("Syntax Error: Expected 'WEND' for matching 'WHILE'".to_string());
-        }
         Ok(commands)
     }
 
@@ -117,7 +82,6 @@ impl<'a> Parser<'a> {
             Token::KeyWord(KeyWordType::Print) => self.parse_print(),
             Token::KeyWord(KeyWordType::If) => self.parse_if(),
             Token::KeyWord(KeyWordType::Random) => self.parse_random(),
-
             Token::Mark(name) => Ok(Statement::Label { name }),
             Token::KeyWord(KeyWordType::End) => Ok(Statement::End),
             Token::KeyWord(KeyWordType::Input) => {
@@ -128,6 +92,7 @@ impl<'a> Parser<'a> {
                 let label = self.get_name()?;
                 Ok(Statement::Goto { label })
             }
+            Token::KeyWord(KeyWordType::While) => self.parse_while(),
             Token::KeyWord(KeyWordType::Else) => {
                 Err("Unexpected ELSE outside of IF block".to_string())
             }
@@ -191,8 +156,10 @@ impl<'a> Parser<'a> {
         }
         
         // Get the stop keywords to get the then_block before we meet ELSE
-        let stop_keywords = vec![Token::KeyWord(KeyWordType::Else), Token::KeyWord(KeyWordType::Wend), Token::KeyWord(KeyWordType::End)];
-
+        let stop_keywords = vec![
+            Token::KeyWord(KeyWordType::Else), 
+            Token::KeyWord(KeyWordType::End),
+        ];
         let then_block = self.parse_block(&stop_keywords)?;
 
         // Start parsing ELSE block
@@ -206,7 +173,6 @@ impl<'a> Parser<'a> {
             let stop_keywords = vec![
                 Token::KeyWord(KeyWordType::End),
                 Token::KeyWord(KeyWordType::Wend),
-                Token::EOF,
             ];
 
             self.parse_block(&stop_keywords)?
@@ -260,12 +226,11 @@ impl<'a> Parser<'a> {
         if let Some(Token::Newline) = self.peek() {
             self.next();
         }
+        let stop_keyword = vec![Token::KeyWord(KeyWordType::Wend)];
+        let stop_block = self.parse_block(&stop_keyword)?;
+        self.next(); // Consume WEND
 
-        Ok(Statement::While { 
-            left_value, 
-            cmp, 
-            right_value, 
-            end_idx: Cell::new(0) })
+        Ok(Statement::While { left_value, cmp, right_value, body: stop_block })
     }
 
     fn parse_random(&mut self) -> Result<Statement<'a>, String> {

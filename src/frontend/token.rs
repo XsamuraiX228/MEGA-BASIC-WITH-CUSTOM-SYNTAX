@@ -53,16 +53,11 @@ pub enum Token<'a> {
     Literal(Literal<'a>),
     Mark(&'a str), // e.g :loop 
     Newline, // \n
-    EOF,
 }
 
 impl<'a> Token<'a> {
     pub fn is_newline(&self) -> bool {
         matches!(self, Token::Newline)
-    }
-    
-    pub fn is_eof(&self) -> bool {
-        matches!(self, Token::EOF)
     }
 }
 
@@ -135,7 +130,6 @@ impl<'a> fmt::Display for Token<'a> {
             Token::Literal(lit) => write!(f, "{}", lit),
             Token::Mark(name) => write!(f, "Mark(:{})", name),
             Token::Newline => write!(f, "Newline"),
-            Token::EOF => write!(f, "EOF"),
         }
     }
 }
