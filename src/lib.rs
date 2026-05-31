@@ -9,7 +9,6 @@ pub mod runtime;
 pub mod io; 
 pub mod diagnostic;
 
-
 /// Run the code (Preprocessor -> Lexer -> Parser -> Interprenter)
 pub fn run_pipeline(raw_code: &str) -> Result<(), String> {
     // 1. Looking for #mode and set dialect::SyntaxDict
@@ -35,19 +34,22 @@ pub fn run_pipeline(raw_code: &str) -> Result<(), String> {
         }
     }
 
-    // 2. Call frontend::lexer::Lexer::new().tokenize()
+    // 2. Create lexer
     let mut lexer = Lexer::new(code_to_parse, &config);
     let tokens = lexer.tokenize();
-
-    // 3. Call frontend::parser::Parser::new().parse()
+    // 3. Create parser
     let mut parser = Parser::new(tokens);
-    let stmt = parser.parse()?;
-
-    // 4. Create runtime::interpreter::Interpreter
+    // 4. Create interprenter
     let mut interpreter = Interpreter::new();
-
-    // 5. Get marks and run execute()
-    let marks = interpreter.pre_scan_labels(&stmt);
-    interpreter.execute(&stmt, &marks)?;
+    match parser.parse() {
+        Ok(ast) => {
+            // run interpreter
+            let marks = interpreter.pre_scan_labels(&ast);
+            interpreter.execute(&ast, &marks)?;
+        }
+        Err(err_string) => {
+            eprintln!("Ошибка: {}", err_string);
+        }
+    }
     Ok(())
 }

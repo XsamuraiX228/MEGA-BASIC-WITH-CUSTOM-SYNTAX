@@ -83,8 +83,8 @@ pub enum Statement<'a> {
         then_block: Vec<Statement<'a>>, 
         else_block: Vec<Statement<'a>>,
     }, // If statement
-    While {left_value: Expression<'a>, cmp: &'a str, right_value: Expression<'a>, block: Vec<Statement<'a>>},
-    For {increment: &'a str, start_idx: i64, end_idx: i64, block: Vec<Statement<'a>>, step: i64},
+    While {left_value: Expression<'a>, cmp: &'a str, right_value: Expression<'a>, block: Vec<Statement<'a>>}, // While loop
+    For {increment: &'a str, start_idx: i64, end_idx: i64, block: Vec<Statement<'a>>, step: i64}, // For loop
     Label {name: &'a str}, // Mark to control the position where the GOTO will jump
     Goto {label: &'a str}, // Jump to mark in code
     Random {name:&'a str, min: i64, max: i64}, // Set random value to variable

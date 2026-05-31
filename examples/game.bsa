@@ -1,4 +1,4 @@
-LET X = 5
-LET D = 0
-
-PRINT X
+#mode "ENGLISH"
+LET X = 10
+LET Y = X * 10 + (78^2)
+PRINT Y

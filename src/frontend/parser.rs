@@ -1,42 +1,58 @@
 use crate::frontend::ast::Statement;
+use crate::frontend::lexer::SpannedToken;
 use crate::frontend::token::KeyWordType;
+use crate::diagnostic::diagnostic::{ErrorHandler, ErrorKind};
 use super::token::{Token, CmpOp, OpType, Literal};
 use super::ast::Expression;
 pub struct Parser<'a> {
-    tokens: Vec<Token<'a>>,
+    tokens: Vec<SpannedToken<'a>>,
+    pub current_line: usize,
 }
 
 impl<'a> Parser<'a> {
 
-    pub fn new(tokens: Vec<Token<'a>>, ) -> Self {
-        Self {tokens}
+    // Create Parser
+    pub fn new(tokens: Vec<SpannedToken<'a>>, ) -> Self {
+        Self {tokens, current_line: 1}
     }
 
+    // Functions peek is used to look at the token and check it
     fn peek(&self) -> Option<&Token<'a>> {
-        self.tokens.last()
+        self.tokens.last().map(|spanned| &spanned.token)
     }
 
+    // Function next is used to get the token and skip it, by using .pop()
     fn next(&mut self) -> Option<Token<'a>> {
-        self.tokens.pop()
+        let spanned= self.tokens.pop()?;
+        self.current_line = spanned.line;
+        Some(spanned.token)
     }
 
-    fn get_name(&mut self) -> Result<&'a str, String> {
-        let name = match self.next() {
-            Some(Token::Literal(Literal::Ident(name))) => name,
-            other => return Err(format!("Expected name of variable {:?}", other))
-        };
-        Ok(name)
+    // Help function to generate error messages
+    fn error(&self, message: &'a str) -> ErrorHandler<'a> {
+        ErrorHandler::new(ErrorKind::Syntax, message, self.current_line)
     }
 
-    fn get_num(&mut self) -> Result<i64, String> {
-        let num = match self.next() {
-            Some(Token::Literal(Literal::Number(num))) => num,
-            other => return Err(format!("Expected name of variable {:?}", other))
-        };
-        Ok(num)
+    // Name getter
+    fn get_name(&mut self) -> Result<&'a str, ErrorHandler<'a>> {
+        match self.next() {
+            Some(Token::Literal(Literal::Ident(name))) => Ok(name),
+            _ => Err(self.error("Expected variable name")),
+        }
     }
 
-    fn parse_block(&mut self, stop_tokens: &[Token<'a>]) -> Result<Vec<Statement<'a>>, String> {
+    // Num getter
+    fn get_num(&mut self) -> Result<i64, ErrorHandler<'a>> {
+        match self.next() {
+            Some(Token::Literal(Literal::Number(num))) => Ok(num),
+            _ => Err(self.error("Expected number")),
+        }
+    }
+
+
+    // Parse_block is use to parse a block of code
+    // While, for and if use this function to parse commands inside them
+    fn parse_block(&mut self, stop_tokens: &[Token<'a>]) -> Result<Vec<Statement<'a>>, ErrorHandler<'a>> {
         let mut block_of_commads = Vec::new();
         while let Some(token) = self.peek() {
             if stop_tokens.iter().any(|t| t == token) {
@@ -56,7 +72,8 @@ impl<'a> Parser<'a> {
         Ok(block_of_commads)
     }
 
-    pub fn parse(&mut self) -> Result<Vec<Statement<'a>>, String> {
+    // Parse the Vec<Token<'a>>
+    pub fn parse(&mut self) -> Result<Vec<Statement<'a>>, ErrorHandler<'a>> {
         let mut commands = Vec::new();
         while let Some(token) = self.peek() {
             match token {
@@ -74,8 +91,9 @@ impl<'a> Parser<'a> {
         Ok(commands)
     }
 
-    fn parse_command(&mut self) -> Result<Statement<'a>, String> {
-        let current_token = self.next().expect("Expected commad");
+    // Parse one command at time
+    fn parse_command(&mut self) -> Result<Statement<'a>, ErrorHandler<'a>> {
+        let current_token = self.next().ok_or_else(|| self.error("Unexpected end of file, expected command"))?;
         match current_token {
             Token::KeyWord(KeyWordType::Let) => self.parse_let(),
             Token::KeyWord(KeyWordType::Print) => self.parse_print(),
@@ -94,19 +112,19 @@ impl<'a> Parser<'a> {
             Token::KeyWord(KeyWordType::While) => self.parse_while(),
             Token::KeyWord(KeyWordType::For) => self.parse_for(),
             Token::KeyWord(KeyWordType::Else) => {
-                Err("Unexpected ELSE outside of IF block".to_string())
+                Err(self.error("Unexpected ELSE outside of IF block"))
             }
-            other => Err(format!("Unexpected command token {:?}", other))
+            _ => Err(self.error("Unexpected command token")),
         }
     }
     
-    fn parse_let(&mut self) -> Result<Statement<'a>, String> {
+    fn parse_let(&mut self) -> Result<Statement<'a>, ErrorHandler<'a>> {
         // get variable name
         let name = self.get_name()?;
 
         // check if = exist
         if self.next() != Some(Token::CmpOp(CmpOp::Equal)) {
-            return Err(format!("Expected ="))
+            return Err(self.error("Expected '=' after variable name in LET"));
         }
 
         // get the value, which will be stored in hashmap
@@ -114,7 +132,7 @@ impl<'a> Parser<'a> {
         Ok(Statement::Assign { name, value })
     }
 
-    fn parse_print(&mut self) -> Result<Statement<'a>, String> {
+    fn parse_print(&mut self) -> Result<Statement<'a>, ErrorHandler<'a>> {
         let statement = match self.next() {
             Some(Token::Literal(Literal::Text(text))) => {
                 if let Some(Token::Semicolon) = self.peek() {
@@ -132,12 +150,12 @@ impl<'a> Parser<'a> {
                     Statement::PrintVar(name, true)
                 }
             }
-            other => return Err(format!("Expected string or variable after PRINT, found {:?}", other))
+            _ => return Err(self.error("Expected string or variable after PRINT")),
         };
         Ok(statement)
     }
 
-    fn parse_if(&mut self) -> Result<Statement<'a>, String> {
+    fn parse_if(&mut self) -> Result<Statement<'a>, ErrorHandler<'a>> {
         // get left expression
         let left_value = self.expr_bp(0)?;
         
@@ -150,7 +168,7 @@ impl<'a> Parser<'a> {
             Some(Token::CmpOp(CmpOp::Greater)) => ">",
             Some(Token::CmpOp(CmpOp::LessEqual)) => "<=",
             Some(Token::CmpOp(CmpOp::GreaterEqual)) => ">=",
-            other => return Err(format!("Expected == or !=, got {:?}", other)),
+            _ => unreachable!(),
         };
         
 
@@ -159,7 +177,11 @@ impl<'a> Parser<'a> {
         
         // check if keyword THEN exist
         if self.next() != Some(Token::KeyWord(KeyWordType::Then)) {
-                return Err(format!("Expected block THEN"));
+            return Err(ErrorHandler::new(
+                ErrorKind::Syntax,
+                "Expected 'THEN' after IF condition",
+                self.current_line
+            ));
         }
        
         // Skip \n
@@ -195,7 +217,7 @@ impl<'a> Parser<'a> {
 
         
         if self.next() != Some(Token::KeyWord(KeyWordType::End)) {
-            return Err("Expected END after IF block".to_string());
+            return Err(self.error("Expected END after IF block"));
         }
         
         
@@ -213,7 +235,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_while(&mut self) -> Result<Statement<'a>, String> {
+    fn parse_while(&mut self) -> Result<Statement<'a>, ErrorHandler<'a>> {
         // get left expression
         let left_value = self.expr_bp(0)?;
 
@@ -226,14 +248,14 @@ impl<'a> Parser<'a> {
             Some(Token::CmpOp(CmpOp::Greater)) => ">",
             Some(Token::CmpOp(CmpOp::LessEqual)) => "<=",
             Some(Token::CmpOp(CmpOp::GreaterEqual)) => ">=",
-            other => return Err(format!("Expected == or !=, got {:?}", other)),
+            _ => return Err(self.error("Expected comparison operator in WHILE condition")),
         };
 
         // get right expression
         let right_value = self.expr_bp(0)?;
 
         if self.next() != Some(Token::KeyWord(KeyWordType::Then)) {
-            return Err(format!("Expected block THEN"));
+            return Err(self.error("Expected block THEN"));
         }
 
         if let Some(Token::Newline) = self.peek() {
@@ -246,21 +268,26 @@ impl<'a> Parser<'a> {
         Ok(Statement::While { left_value, cmp, right_value, block })
     }
 
-    fn parse_for(&mut self) -> Result<Statement<'a>, String> {
+    fn parse_for(&mut self) -> Result<Statement<'a>, ErrorHandler<'a>> {
         let variable = self.get_name()?;
 
         if self.next() != Some(Token::CmpOp(CmpOp::Equal)) {
-            return Err(format!("Expected operator = "));
+            return Err(self.error("Expected operator = "));
         }
 
         let start_idx = self.get_num()?;
+
+        if self.next() != Some(Token::KeyWord(KeyWordType::To)) {
+            return Err(self.error("Expected 'TO' keyword in FOR loop"));
+        }
+
         self.next(); // Consume TO
         let end_idx = self.get_num()?;
 
         let step = if let Some(Token::KeyWord(KeyWordType::Step)) = self.peek() {
-            self.next(); // съедаем STEP только если он там есть
+            self.next(); // Consume STEP
             if let Some(Token::OpType(OpType::Minus)) = self.peek() {
-                self.next(); // съедаем -
+                self.next(); // Consume -
                 -self.get_num()?
             } else {
                 self.get_num()?
@@ -285,7 +312,7 @@ impl<'a> Parser<'a> {
             step, })
     }
 
-    fn parse_random(&mut self) -> Result<Statement<'a>, String> {
+    fn parse_random(&mut self) -> Result<Statement<'a>, ErrorHandler<'a>> {
         // get name of varibale
         let name = self.get_name()?;
         
@@ -296,28 +323,34 @@ impl<'a> Parser<'a> {
         Ok (Statement::Random { name, min, max })
     }
 
-    fn expr_bp(&mut self, min_bp: u8) -> Result<Expression<'a>, String> {
+
+    // Expr_bp used for calculate math expressions in code
+    // e.g LET X = 5 + (9 * 6)^2
+    pub fn expr_bp(&mut self, min_bp: u8) -> Result<Expression<'a>, ErrorHandler<'a>> {
         let mut lhs = match self.next() {
             Some(Token::Literal(Literal::Number(num))) => Expression::Atom(num),
             Some(Token::OpType(OpType::LParen)) => {
-                let lhs = self.expr_bp( 0)?;
+                let lhs = self.expr_bp(0)?;
                 if self.next() != Some(Token::OpType(OpType::RParen)) {
-                    return Err("Syntax Error: Expected matching ')'".to_string());
+                    return Err(self.error("Expected matching ')'"));
                 }
                 lhs
             }
             Some(Token::OpType(op_type)) => {
                 match op_type {
                     OpType::Plus | OpType::Minus => {
-                        let ((), r_bp) = self.prefix_bind_operator(op_type)?;
-                        let rhs = self.expr_bp(r_bp)?;
+                        let prefix_bp = self.prefix_bind_operator(op_type)
+                            .map_err(|err_msg| self.error(err_msg))?;
+                        
+                        let rhs = self.expr_bp(prefix_bp)?;
                         Expression::UnCons(op_type, Box::new(rhs))
                     }
-                    _ => return Err(format!("Unexpected operator {:?}", op_type)),
+                    _ => return Err(self.error("Unexpected operator inside expression")),
                 }
             }
             Some(Token::Literal(Literal::Ident(name))) => Expression::Variable(name),
-            t => return Err(format!("Expected number, variable or prefix operator, but found {:?}", t)),
+            Some(Token::Literal(Literal::Text(_))) => return Err(self.error("Strings are not allowed in math expressions")),
+            _ => return Err(self.error("Expected number, variable or prefix operator")),
         }; 
 
         loop {
@@ -326,8 +359,8 @@ impl<'a> Parser<'a> {
                 _ => break
             };
 
-            if let Ok((left_power, ())) = self.postfix_bind_operator(op) {
-                if left_power < min_bp {
+            if let Ok(postfix_bp) = self.postfix_bind_operator(op) {
+                if postfix_bp < min_bp {
                     break;
                 }
                 self.next();
@@ -350,26 +383,30 @@ impl<'a> Parser<'a> {
 
         Ok(lhs)
     }
-    fn prefix_bind_operator(&self, op_type: OpType) -> Result<((), u8), String> {
+    // check prefix operator -5
+    fn prefix_bind_operator(&self, op_type: OpType) -> Result<u8, &'static str> {
         match op_type {
-            OpType::Plus | OpType::Minus => Ok(((), 5)),
-            _ => Err(format!("Wrong prefix operator {:?}", op_type)),
+            OpType::Plus | OpType::Minus => Ok(5),
+            _ => Err("Wrong prefix operator"),
         }
     }
 
-    fn postfix_bind_operator(&self, op_type: OpType) -> Result<(u8, ()), String> {
+    // check postfix operator 5!
+    fn postfix_bind_operator(&self, op_type: OpType) -> Result<u8, &'static str> {
         match op_type {
-            OpType::Factorial => Ok((8, ())),
-            _ => Err(format!("Wrong postfix operator {:?}", op_type)),
+            OpType::Factorial => Ok(8),
+            _ => Err("Wrong postfix operator"),
         }
     }
-
-    fn infix_bind_operator(&self, op_type: OpType) -> Result<(u8, u8), String> {
+    // check infix operators 
+    // E.g 5 + 6 or 7 * 9 or 9 / 3, etc.
+    fn infix_bind_operator(&self, op_type: OpType) -> Result<(u8, u8), &'static str> {
         match op_type {
-            OpType::Plus | OpType::Minus => Ok((1, 2)),
-            OpType::Multiply | OpType::Divide | OpType::Mod => Ok((3, 4)),
-            OpType::Power => Ok((7, 6)),
-            _ => Err(format!("Wrong infix operator {:?}", op_type)),
+            OpType::Plus | OpType::Minus => Some((1, 2)),
+            OpType::Multiply | OpType::Divide | OpType::Mod => Some((3, 4)),
+            OpType::Power => Some((7, 6)),
+            _ => None,
         }
+        .ok_or("Wrong infix operator")
     }
 }

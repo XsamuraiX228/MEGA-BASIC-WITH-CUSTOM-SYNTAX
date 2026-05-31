@@ -5,7 +5,7 @@ pub enum ErrorKind {
     Runtime,
 } 
 
-struct ErrorHandler<'a> {
+pub struct ErrorHandler<'a> {
     err_type: ErrorKind,
     error: &'a str,
     line: usize,
@@ -24,6 +24,6 @@ impl<'a> fmt::Display for ErrorHandler<'a> {
             ErrorKind::Syntax  => "Syntax Error",
             ErrorKind::Runtime => "Runtime Error",
         };
-        write!(f, "[Chameleon {}] on line {}: {}", prefix, self.line, self.error)
+        write!(f, "[{}] on line {}: {}", prefix, self.line, self.error)
     }
 }
