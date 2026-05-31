@@ -7,6 +7,7 @@ pub mod dialect;
 pub mod frontend;
 pub mod runtime;
 pub mod io; 
+pub mod diagnostic;
 
 
 /// Run the code (Preprocessor -> Lexer -> Parser -> Interprenter)
@@ -48,6 +49,5 @@ pub fn run_pipeline(raw_code: &str) -> Result<(), String> {
     // 5. Get marks and run execute()
     let marks = interpreter.pre_scan_labels(&stmt);
     interpreter.execute(&stmt, &marks)?;
-
     Ok(())
 }

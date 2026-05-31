@@ -4,7 +4,8 @@ use super::token::OpType;
 pub enum Expression<'a> {
     Atom(i64),
     Variable(&'a str),
-    Cons(OpType, Vec<Expression<'a>>)
+    UnCons(OpType, Box<Expression<'a>>),
+    BinCons(OpType, Box<Expression<'a>>, Box<Expression<'a>>),
 }
 
 impl<'a> Expression<'a> {
@@ -16,47 +17,43 @@ impl<'a> Expression<'a> {
                     .cloned()
                     .ok_or_else(|| format!("Variable '{}' not found", name))
             }
-            Expression::Cons(op, args) => {
+            Expression::UnCons(op, arg) => {
                 match op {
-                    OpType::Plus => {
-                        if args.len() == 1 {
-                            Ok(args[0].evaluate(env)?) 
-                        } else {
-                            Ok(args[0].evaluate(env)? + args[1].evaluate(env)?)
-                        }
-                    }
-                    OpType::Minus => {
-                        if args.len() == 1 {
-                            Ok(-args[0].evaluate(env)?)  
-                        } else {
-                            Ok(args[0].evaluate(env)? - args[1].evaluate(env)?)
-                        }
-                    }
-                    OpType::Multiply => {
-                        Ok(args[0].evaluate(env)? * args[1].evaluate(env)?)
-                    }
-                    OpType::Divide => {
-                        let rhs = args[1].evaluate(env)?;
-                        if rhs == 0 {
-                            return Err("Division by zero".to_string());
-                        }
-                        Ok(args[0].evaluate(env)? / rhs)
-                    }
-                    OpType::Mod => {
-                        Ok(args[0].evaluate(env)? % args[1].evaluate(env)?)
-                    }
-                    OpType::Power => {
-                        let base = args[0].evaluate(env)?;
-                        let exp = args[1].evaluate(env)?;
-                        Ok(base.pow(exp as u32))
-                    }
-                    OpType::Factorial => {
-                        let val = args[0].evaluate(env)?;
-                        Ok(factorial(val))
-                    }
+                    OpType::Minus => Ok(-arg.evaluate(env)?),
+                    OpType::Plus => Ok(arg.evaluate(env)?),
+                    OpType::Factorial => Ok(factorial(arg.evaluate(env)?)),
                     OpType::LParen | OpType::RParen => {
                         Err("Parentheses should not appear in evaluation".to_string())
                     }
+                    _ => unreachable!(),
+                }
+            }
+            Expression::BinCons(op, lhs, rhs) => {
+                match op {
+                    OpType::Plus => Ok(lhs.evaluate(env)? + rhs.evaluate(env)?),
+                    OpType::Minus => Ok(lhs.evaluate(env)? - rhs.evaluate(env)?),
+                    OpType::Multiply => Ok(lhs.evaluate(env)? * rhs.evaluate(env)?),
+                    OpType::Divide => {
+                        let divisor = rhs.evaluate(env)?;
+                        if divisor == 0 {
+                            return Err("Division by zero".to_string());
+                        } else {
+                            Ok(lhs.evaluate(env)? / divisor)
+                        }
+                    },
+                    OpType::Mod => {
+                        let divisor = rhs.evaluate(env)?;
+                        if divisor == 0 {
+                            return Err("Division by zero".to_string());
+                        } else {
+                            Ok(lhs.evaluate(env)? % divisor)
+                        }
+                    },
+                    OpType::Power => Ok(lhs.evaluate(env)?.pow(rhs.evaluate(env)? as u32)),
+                    OpType::LParen | OpType::RParen => {
+                        Err("Parentheses should not appear in evaluation".to_string())
+                    }
+                    _ => unreachable!(),
                 }
             }
         }

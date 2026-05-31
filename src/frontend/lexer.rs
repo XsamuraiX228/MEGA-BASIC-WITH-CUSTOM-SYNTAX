@@ -1,6 +1,13 @@
 use crate::dialect::{SyntaxDict};
 use super::token::{Token, CmpOp, OpType, Literal};
 use super::token::VALID_OPERATORS;
+/* 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SpannedToken<'a> {
+    pub token: Token<'a>,
+    pub line: usize,
+}
+*/
 pub struct Lexer<'a> {
     input: &'a str,
     pos: usize,
@@ -12,7 +19,7 @@ impl<'a> Lexer<'a> {
         Self {
             input: input,
             pos: 0,
-            config
+            config,
         }
     }
 

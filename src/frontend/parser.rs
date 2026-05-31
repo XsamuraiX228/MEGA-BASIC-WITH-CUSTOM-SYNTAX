@@ -3,7 +3,7 @@ use crate::frontend::token::KeyWordType;
 use super::token::{Token, CmpOp, OpType, Literal};
 use super::ast::Expression;
 pub struct Parser<'a> {
-    tokens: Vec<Token<'a>>
+    tokens: Vec<Token<'a>>,
 }
 
 impl<'a> Parser<'a> {
@@ -115,21 +115,18 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_print(&mut self) -> Result<Statement<'a>, String> {
-        // 2. Парсим само значение (строку или переменную)
         let statement = match self.next() {
             Some(Token::Literal(Literal::Text(text))) => {
-                // Заглядываем вперед: нет ли точки с запятой в КОНЦЕ? PRINT "Привет" ;
                 if let Some(Token::Semicolon) = self.peek() {
-                    self.next(); // съедаем ;
-                    Statement::PrintStr(text, false) // перенос строки НЕ нужен
+                    self.next(); // Consume ;
+                    Statement::PrintStr(text, false) 
                 } else {
-                    Statement::PrintStr(text, true) // используем флаг из начала
+                    Statement::PrintStr(text, true)
                 }
             }
             Some(Token::Literal(Literal::Ident(name))) => {
-                // То же самое для переменных: PRINT X ;
                 if let Some(Token::Semicolon) = self.peek() {
-                    self.next(); // съедаем ;
+                    self.next(); // Consume ;
                     Statement::PrintVar(name, false)
                 } else {
                     Statement::PrintVar(name, true)
@@ -314,7 +311,7 @@ impl<'a> Parser<'a> {
                     OpType::Plus | OpType::Minus => {
                         let ((), r_bp) = self.prefix_bind_operator(op_type)?;
                         let rhs = self.expr_bp(r_bp)?;
-                        Expression::Cons(op_type, vec![rhs])
+                        Expression::UnCons(op_type, Box::new(rhs))
                     }
                     _ => return Err(format!("Unexpected operator {:?}", op_type)),
                 }
@@ -335,7 +332,7 @@ impl<'a> Parser<'a> {
                 }
                 self.next();
 
-                lhs = Expression::Cons(op, vec![lhs]);
+                lhs = Expression::UnCons(op, Box::new(lhs));
                 continue;
             }
 
@@ -345,7 +342,7 @@ impl<'a> Parser<'a> {
                 }
                 self.next();
                 let rhs = self.expr_bp(right_power)?;
-                lhs = Expression::Cons(op, vec![lhs, rhs]);
+                lhs = Expression::BinCons(op, Box::new(lhs), Box::new(rhs));
                 continue;
             }
             break;

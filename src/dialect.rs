@@ -224,6 +224,33 @@ impl SyntaxDict {
         Self { keywords }
     }
 
+    fn mix_style() -> Self {
+        let mut keywords = HashMap::new();
+        
+        // Переменные берем из Rust-краба, ввод/вывод из английского и русского
+        keywords.insert("🦀".to_string(), KeyWordType::Let);
+        keywords.insert("PRINT".to_string(), KeyWordType::Print);
+        keywords.insert("ВВОД".to_string(), KeyWordType::Input);
+        
+        // Условия делаем японскими
+        keywords.insert("もし".to_string(), KeyWordType::If);
+        keywords.insert("ならば".to_string(), KeyWordType::Then);
+        keywords.insert("違う".to_string(), KeyWordType::Else);
+        
+        // Циклы: старт по-русски, границы по-английски, шаг крабовый, закрытие японское
+        keywords.insert("ДЛЯ".to_string(), KeyWordType::For);
+        keywords.insert("TO".to_string(), KeyWordType::To);
+        keywords.insert("👣".to_string(), KeyWordType::Step);
+        keywords.insert("次".to_string(), KeyWordType::Next);
+        
+        // Утилиты
+        keywords.insert("GOTO".to_string(), KeyWordType::Goto);
+        keywords.insert("乱数".to_string(), KeyWordType::Random);
+        keywords.insert("СТОП".to_string(), KeyWordType::End);
+        
+        Self { keywords }
+    }
+
     pub fn get_dict(name_of_dict: &str) -> SyntaxDict {
         match name_of_dict {
             "RUSSIAN" => Self::russian_style(),
@@ -231,6 +258,7 @@ impl SyntaxDict {
             "CRAB" => Self::crab_style(),
             "JAPANESE" => Self::japanese_style(),
             "ELF" => Self::elf_style(),
+            "MIX" => Self::mix_style(),
             _ => Self::default_english(),
         }
     }
